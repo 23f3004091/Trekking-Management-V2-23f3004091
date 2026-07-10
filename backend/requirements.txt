@@ -1,0 +1,9 @@
+Flask
+Flask-Cors
+Flask-JWT-Extended
+celery
+Flask-Login
+Flask-SQLAlchemy
+Flask-Mail
+Flask-Caching
+redis
