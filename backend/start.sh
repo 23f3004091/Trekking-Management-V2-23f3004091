@@ -21,13 +21,13 @@ trap cleanup SIGINT EXIT
 sleep 2 
 
 echo "Starting Flask (The API)..."
-python app.py &
+python3 app.py &
 
-# echo "Starting Celery Worker (The Muscle)..."
-# celery -A app.celery worker --loglevel=info &
+echo "Starting Celery Worker (The Muscle)..."
+celery -A app.celery worker --loglevel=info &
 
-# echo "Starting Celery Beat (The Brain/Clock)..."
-# celery -A app.celery beat --loglevel=info &
+echo "Starting Celery Beat (The Brain/Clock)..."
+celery -A app.celery beat --loglevel=info &
 
 echo ""
 echo "===================================================="
