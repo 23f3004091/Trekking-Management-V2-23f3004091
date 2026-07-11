@@ -17,8 +17,6 @@ trap cleanup SIGINT EXIT
 # echo "Starting Redis (The Broker)..."
 # docker run --rm -p 6379:6379 redis &
 
-# (Optional) Give Redis a couple of seconds to boot up before the others try to connect
-sleep 2 
 
 echo "Starting Flask (The API)..."
 python3 app.py &
