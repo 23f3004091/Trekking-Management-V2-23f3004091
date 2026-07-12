@@ -11,9 +11,8 @@ class UserRole(enum.Enum):
 
 class ProfileStatus(enum.Enum):
     PENDING = "Pending"
-    ACTIVE = "Active"
-    ON_LEAVE = "On Leave"
-    INACTIVE = "Inactive"
+    APPROVED = "Approved"
+    REJECTED = "Rejected"
 
 class TrekStatus(enum.Enum):
     PENDING = "Pending"
@@ -68,8 +67,8 @@ class Trekker(CommonFields):
     __tablename__ = 'trekkers'
     
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
-    blacklisted = db.Column(db.Boolean, default=False, nullable=False)
     age = db.Column(db.Integer, nullable=True)
+    blacklisted = db.Column(db.Boolean, default=False, nullable=False)
     
 
 class StaffProfile(CommonFields):
@@ -77,10 +76,9 @@ class StaffProfile(CommonFields):
     
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
     contact_details = db.Column(db.String(255), nullable=True)
-    status = db.Column(db.Enum(ProfileStatus), default=ProfileStatus.ACTIVE)  # e.g., Active, On Leave
+    status = db.Column(db.Enum(ProfileStatus), default=ProfileStatus.PENDING)  # e.g., Active, On Leave
     blacklisted = db.Column(db.Boolean, default=False, nullable=False)
     
-
 
 class Trek(CommonFields):
     __tablename__ = 'treks'

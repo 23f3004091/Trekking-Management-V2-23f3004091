@@ -29,9 +29,9 @@ def seed_database():
     db.session.commit()  # Commit to generate IDs for foreign keys
 
     print("Creating Staff Profiles...")
-    staff_profile_1 = StaffProfile(user_id=staff1.id, contact_details="111-222-3333", status=ProfileStatus.ACTIVE)
-    staff_profile_2 = StaffProfile(user_id=staff2.id, contact_details="444-555-6666", status=ProfileStatus.ACTIVE)
-    
+    staff_profile_1 = StaffProfile(user_id=staff1.id, contact_details="111-222-3333", status=ProfileStatus.APPROVED)
+    staff_profile_2 = StaffProfile(user_id=staff2.id, contact_details="444-555-6666", status=ProfileStatus.APPROVED)
+
     db.session.add_all([staff_profile_1, staff_profile_2])
     db.session.commit()
 
