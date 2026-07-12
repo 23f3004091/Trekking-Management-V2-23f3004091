@@ -27,7 +27,7 @@ app.config['JWT_SECRET_KEY'] = "23f3004091@ds.study.iitm.ac.in1234"
 # app.config['beat_schedule'] = {
 #     'daily-morning-reminders': {
 #         'task': 'tasks.kickoff_daily_morning_reminders',
-#         # 'schedule': 10.0, 
+#         # 'schedule': 10.0,
 #         'schedule': crontab(minute='*'), 
 #     },
 #     'monthly-trek-reports': {

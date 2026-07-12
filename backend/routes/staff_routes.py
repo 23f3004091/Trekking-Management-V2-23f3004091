@@ -35,8 +35,17 @@ def get_treks():
         return jsonify({"error": "Staff profile not found"}), 404
 
     treks = Trek.query.filter_by(staff_id=staff_profile.user_id).all()
-    print(treks)
-    trek_list = [{"id": trek.id, "trek_name": trek.trek_name, "location": trek.location, "difficulty": trek.difficulty.value, "status": trek.status.value} for trek in treks]
+    trek_list = [{
+        "id": trek.id, 
+        "trek_name": trek.trek_name, 
+        "location": trek.location, 
+        "difficulty": trek.difficulty.value if trek.difficulty else "Easy", 
+        "available_slots": trek.available_slots,
+        "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
+        "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
+        "registered_count": len(trek.bookings),
+        "status": trek.status.value if trek.status else "Pending"
+    } for trek in treks]
     
     return jsonify({"treks": trek_list}), 200
 
@@ -55,7 +64,16 @@ def get_bookings(trek_id):
     if not trek:
         return jsonify({"error": "Trek not found"}), 404
 
-    booking_list = [{"id": booking.id, "user_id": booking.user_id, "trek_id": booking.trek_id, "booking_date": booking.booking_date.isoformat(), "status": booking.status.value} for booking in trek.bookings]
+    booking_list = [{
+        "id": booking.id, 
+        "user_id": booking.user_id, 
+        "username": booking.trekker.username if booking.trekker else f"User #{booking.user_id}",
+        "email": booking.trekker.email if booking.trekker else "",
+        "trek_id": booking.trek_id, 
+        "trek_name": trek.trek_name,
+        "booking_date": booking.booking_date.strftime('%Y-%m-%d %H:%M') if booking.booking_date else "", 
+        "status": booking.status.value if booking.status else "Booked"
+    } for booking in trek.bookings]
 
     return jsonify({"bookings": booking_list}), 200
 
@@ -68,12 +86,18 @@ def get_users_for_trek(trek_id):
     if not staff_profile:
         return jsonify({"error": "Staff profile not found"}), 404
 
-    users = User.query.join(Booking).filter(Booking.trek_id == trek_id).all()
-    
-    if not users:
-        return jsonify({"message": "No users found for this trek."}), 404
+    bookings = Booking.query.filter_by(trek_id=trek_id).all()
+    if not bookings:
+        return jsonify({"users": [], "message": "No users found for this trek."}), 200
         
-    user_data = [{"id": user.id, "username": user.username, "email": user.email} for user in users]
+    user_data = [{
+        "id": booking.trekker.id if booking.trekker else booking.user_id, 
+        "username": booking.trekker.username if booking.trekker else f"User #{booking.user_id}", 
+        "email": booking.trekker.email if booking.trekker else "",
+        "booking_id": booking.id,
+        "booking_status": booking.status.value if booking.status else "Booked",
+        "booking_date": booking.booking_date.strftime('%Y-%m-%d %H:%M') if booking.booking_date else ""
+    } for booking in bookings]
 
     return jsonify({"users": user_data}), 200
 
@@ -97,14 +121,16 @@ def update_trek_status(trek_id):
     new_slots = data.get('available_slots')
     new_status = data.get('status')
 
-    if new_status not in [status.value for status in TrekStatus]:
+    if new_status and new_status not in [status.value for status in TrekStatus]:
         return jsonify({"error": "Invalid status value"}), 400
 
-    trek.available_slots = new_slots if new_slots is not None else trek.available_slots
-    trek.status = TrekStatus(new_status)
+    if new_slots is not None:
+        trek.available_slots = int(new_slots)
+    if new_status:
+        trek.status = TrekStatus(new_status)
     db.session.commit()
 
-    return jsonify({"message": "Trek status updated successfully", "trek": {"id": trek.id, "status": trek.status.value}}), 200
+    return jsonify({"message": "Trek status updated successfully", "trek": {"id": trek.id, "status": trek.status.value, "available_slots": trek.available_slots}}), 200
 
 
 @staff_bp.route('/update-booking-status/<int:booking_id>', methods=['PATCH'])

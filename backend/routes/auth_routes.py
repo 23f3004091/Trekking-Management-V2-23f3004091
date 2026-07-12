@@ -37,6 +37,10 @@ def register():
     new_user.set_password(password)
     db.session.add(new_user)
     db.session.commit()
+    
+    trekker_profile = Trekker(user_id=new_user.id, age=25, blacklisted=False)
+    db.session.add(trekker_profile)
+    db.session.commit()
 
     return jsonify({"message": "User registered successfully"}), 201
 
@@ -60,7 +64,7 @@ def register_staff():
     db.session.add(new_user)
     db.session.commit()
 
-    staff_profile = StaffProfile(user_id=new_user.id, contact_details=contact_details, status=ProfileStatus.ACTIVE)
+    staff_profile = StaffProfile(user_id=new_user.id, contact_details=contact_details, status=ProfileStatus.APPROVED)
     db.session.add(staff_profile)
     db.session.commit()
 

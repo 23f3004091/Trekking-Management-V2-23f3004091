@@ -35,12 +35,21 @@ def get_treks():
         return jsonify({"error": "Trekker profile not found"}), 404
 
     treks = Trek.query.all()
-    # print(treks)
     trek_list = []
     for trek in treks:
-        # print(trek.status)
         if trek.status in [TrekStatus.APPROVED, TrekStatus.OPEN]:
-            trek_list.append({"id": trek.id, "trek_name": trek.trek_name, "location": trek.location, "difficulty": trek.difficulty.value, "status": trek.status.value})
+            duration = (trek.end_date - trek.start_date).days if (trek.end_date and trek.start_date) else 1
+            trek_list.append({
+                "id": trek.id, 
+                "trek_name": trek.trek_name, 
+                "location": trek.location, 
+                "difficulty": trek.difficulty.value if trek.difficulty else "Easy", 
+                "available_slots": trek.available_slots,
+                "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
+                "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
+                "duration_days": duration if duration > 0 else 1,
+                "status": trek.status.value if trek.status else "Open"
+            })
     
     return jsonify({"treks": trek_list}), 200
     
@@ -55,7 +64,18 @@ def get_history():
         return jsonify({"error": "Trekker profile not found"}), 404
 
     history = Booking.query.filter_by(user_id=trekker_profile.user_id).all()
-    history_list = [{"id": history.id, "user_id": history.user_id, "trek_id": history.trek_id, "booking_date": history.booking_date.isoformat(), "status": history.status.value} for history in history]
+    history_list = [{
+        "id": b.id, 
+        "user_id": b.user_id, 
+        "trek_id": b.trek_id, 
+        "trek_name": b.treks.trek_name if b.treks else "Unknown Trek",
+        "location": b.treks.location if b.treks else "",
+        "difficulty": b.treks.difficulty.value if (b.treks and b.treks.difficulty) else "Easy",
+        "start_date": b.treks.start_date.strftime('%Y-%m-%d') if (b.treks and b.treks.start_date) else "",
+        "end_date": b.treks.end_date.strftime('%Y-%m-%d') if (b.treks and b.treks.end_date) else "",
+        "booking_date": b.booking_date.strftime('%Y-%m-%d %H:%M') if b.booking_date else "", 
+        "status": b.status.value if b.status else "Booked"
+    } for b in history]
 
     return jsonify({"history": history_list}), 200
 
@@ -80,7 +100,18 @@ def book_trek(trek_id):
     db.session.add(booking)
     db.session.commit()
 
-    return jsonify({"message": "Booking created successfully", "booking": {"id": booking.id, "user_id": booking.user_id, "trek_id": booking.trek_id, "booking_date": booking.booking_date.isoformat(), "status": booking.status.value}}), 201
+    return jsonify({"message": "Booking created successfully", "booking": {
+        "id": booking.id, 
+        "user_id": booking.user_id, 
+        "trek_id": booking.trek_id, 
+        "trek_name": trek.trek_name,
+        "location": trek.location,
+        "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
+        "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
+        "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
+        "booking_date": booking.booking_date.strftime('%Y-%m-%d %H:%M') if booking.booking_date else "", 
+        "status": booking.status.value if booking.status else "Booked"
+    }}), 201
 
 
 @trekker_bp.route('/update-booking-status/<int:booking_id>', methods=['PATCH'])
