@@ -6,9 +6,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 admin_bp = Blueprint('admin', __name__)
 
-@admin_bp.route('/dashboard', methods=['GET'])
+@admin_bp.route('/summary', methods=['GET'])
 @jwt_required()
-def dashboard():
+def summary():
     total_treks = Trek.query.count()
     total_trekkers = Trekker.query.count()
     total_staff = StaffProfile.query.count()

@@ -6,9 +6,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 staff_bp = Blueprint('staff', __name__)
 
-@staff_bp.route('/dashboard', methods=['GET'])
+@staff_bp.route('/summary', methods=['GET'])
 @jwt_required()
-def staff_dashboard():
+def summary():
     current_user_id = get_jwt_identity()
     # print(current_user_id)
     staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()

@@ -1,5 +1,5 @@
 
-from models import User, UserRole, ProfileStatus, Trek, StaffProfile
+from models import User, UserRole, ProfileStatus, Trek, StaffProfile, Trekker
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, create_refresh_token
 from extensions import db
@@ -48,7 +48,6 @@ def register_staff():
     email = data.get('email')
     password = data.get('password')
     contact_details = data.get('contact_details', '')
-    status = data.get('status', ProfileStatus.ACTIVE)  # Default status is ACTIVE
 
     if not username or not email or not password:
         return jsonify({"error": "Missing required fields"}), 400
@@ -61,7 +60,7 @@ def register_staff():
     db.session.add(new_user)
     db.session.commit()
 
-    staff_profile = StaffProfile(user_id=new_user.id, contact_details=contact_details, status=status)
+    staff_profile = StaffProfile(user_id=new_user.id, contact_details=contact_details, status=ProfileStatus.ACTIVE)
     db.session.add(staff_profile)
     db.session.commit()
 
@@ -82,6 +81,19 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid credentials"}), 401
 
+    if user.role == UserRole.TREK_STAFF:
+        staff_profile = StaffProfile.query.filter_by(user_id=user.id).first()
+        if staff_profile.status == ProfileStatus.PENDING:
+            return jsonify({"error": "Profile is waiting for approval by admin"}), 403
+        elif staff_profile.status == ProfileStatus.REJECTED:
+            return jsonify({"error": "Profile has been rejected by admin"}), 403
+        
+    if user.role == UserRole.TREKKER:
+        trekker_profile = Trekker.query.filter_by(user_id=user.id).first()
+        if trekker_profile.blacklisted:
+            return jsonify({"error": "Trekker is blacklisted"}), 403
+        
+        
     claims = {"role": user.role.value, "username": user.username}
     refresh_token = create_refresh_token(identity=str(user.id), additional_claims=claims)
     access_token = create_access_token(identity=str(user.id),
