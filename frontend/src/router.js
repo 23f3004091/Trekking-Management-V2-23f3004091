@@ -36,13 +36,13 @@ const routes = [
     meta: { guest: true }
   },
   {
-    path: '/register',
+    path: '/register-trekker',
     name: 'Register',
     component: RegisterPage,
     meta: { guest: true }
   },
   {
-    path: '/register/staff',
+    path: '/register-staff',
     name: 'RegisterStaff',
     component: RegisterStaffPage,
     meta: { guest: true }

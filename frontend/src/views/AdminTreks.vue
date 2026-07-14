@@ -255,10 +255,10 @@ const updateStatus = async (id, action) => {
                         </a></li>
                       </ul>
                     </div>
-                    <button class="btn btn-sm btn-outline-primary" @click="openEditModal(trek)" title="Edit">
+                    <button class="btn btn-sm btn-outline-primary" @click="openEditModal(trek)" title="Edit" :disabled="trek.status == 'Completed'">
                       <i class="bi bi-pencil-fill"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(trek.id)" title="Delete">
+                    <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(trek.id)" title="Delete" :disabled="trek.status == 'Completed'">
                       <i class="bi bi-trash-fill"></i>
                     </button>
                   </div>

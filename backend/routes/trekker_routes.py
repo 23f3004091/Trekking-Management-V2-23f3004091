@@ -52,8 +52,10 @@ def get_treks():
                 "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
                 "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
                 "duration_days": duration if duration > 0 else 1,
-                "status": trek.status.value if trek.status else "Open"
+                "status": trek.status.value if trek.status else "Open",
+                # "alread_booked": True if trek.bookings.filter_by(user_id=current_user_id).first() else False
             })
+        # print(trek.bookings)
     
     return jsonify({"treks": trek_list}), 200
     
@@ -102,13 +104,27 @@ def book_trek(trek_id):
     already_booked = False
     if is_booked:
         already_booked = True
-        # return jsonify({"error": "Already booked this trek"}), 400
+        return jsonify({"error": "Already booked this trek"}), 400
     
     trek.available_slots -= 1
     booking = Booking(user_id=current_user_id, trek_id=trek_id)
     
     db.session.add(booking)
     db.session.commit()
+    
+    print({"message": "Booking created successfully", "booking": {
+        "id": booking.id, 
+        "user_id": booking.user_id, 
+        "trek_id": booking.trek_id, 
+        "trek_name": trek.trek_name,
+        "location": trek.location,
+        "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
+        "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
+        "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
+        "booking_date": booking.booking_date.strftime('%Y-%m-%d %H:%M') if booking.booking_date else "", 
+        "already_booked": already_booked,
+        "status": booking.status.value if booking.status else "Booked"
+    }})
 
     return jsonify({"message": "Booking created successfully", "booking": {
         "id": booking.id, 

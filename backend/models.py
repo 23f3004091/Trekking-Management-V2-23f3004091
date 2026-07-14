@@ -69,7 +69,7 @@ class Trekker(CommonFields):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
     age = db.Column(db.Integer, nullable=True)
     blacklisted = db.Column(db.Boolean, default=False, nullable=False)
-    
+    user = db.relationship('User', backref='trekker', lazy=True)
 
 class StaffProfile(CommonFields):
     __tablename__ = 'staff_profiles'
@@ -96,7 +96,7 @@ class Trek(CommonFields):
 
     # Relationships
     bookings = db.relationship('Booking', backref='treks', lazy=True)
-
+    staff = db.relationship('User', foreign_keys=[staff_id])
 
 class Booking(CommonFields):
     __tablename__ = 'bookings'

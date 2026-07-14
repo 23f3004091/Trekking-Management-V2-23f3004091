@@ -37,12 +37,22 @@ def seed_database():
 
     print("Creating 4 Trekkers...")
     trekkers_users = []
+    flag = True
     for i in range(1, 5):
-        t_user = User(
-            username=f"trekker_{i}", 
-            email=f"trekker{i}@mail.com", 
-            role=UserRole.TREKKER
-        )
+        # flag = True
+        if flag:
+            t_user = User(
+                username=f"trekker_{i}",
+                email=f"23f3004091@ds.study.iitm.ac.in",
+                role=UserRole.TREKKER
+            )
+            flag = False
+        else:
+            t_user = User(
+                    username=f"trekker_{i}",
+                    email=f"23f3004091{i}-dummy@ds.study.iitm.ac.in",
+                    role=UserRole.TREKKER
+                )
         t_user.set_password("password123")
         trekkers_users.append(t_user)
 

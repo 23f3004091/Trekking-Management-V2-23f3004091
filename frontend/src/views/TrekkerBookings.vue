@@ -117,8 +117,8 @@ const executeCancel = async () => {
                 <th>Location</th>
                 <th>Date</th>
                 <th>Difficulty</th>
-                <th>Status</th>
                 <th>Booking Date</th>
+                <th>Status</th>
                 <th class="text-end">Actions</th>
               </tr>
             </thead>

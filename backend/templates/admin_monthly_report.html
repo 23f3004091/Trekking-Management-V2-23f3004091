@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Activity Report</title>
+    <style>
+        body {
+            margin: 0; padding: 0; background-color: #f4f7f6;
+            font-family: Arial, sans-serif; color: #333;
+        }
+        .main {
+            background-color: #ffffff; margin: 20px auto; width: 100%; max-width: 600px;
+            border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .header { background-color: #1a365d; padding: 20px; text-align: center; color: white; }
+        .header h1 { margin: 0; font-size: 22px; }
+        .content { padding: 30px; }
+        .stats-container { display: flex; justify-content: space-between; margin-bottom: 30px; }
+        .stat-box {
+            background-color: #f8fafc; border: 1px solid #e2e8f0;
+            padding: 15px; border-radius: 6px; width: 45%; text-align: center;
+        }
+        .stat-box h3 { margin: 0; font-size: 28px; color: #2b6cb0; }
+        .stat-box p { margin: 5px 0 0; font-size: 14px; color: #64748b; font-weight: bold; }
+        table.popular-treks { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .popular-treks th, .popular-treks td {
+            padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0;
+        }
+        .popular-treks th { background-color: #f1f5f9; color: #475569; font-size: 14px; }
+        .footer { background-color: #eeeeee; padding: 15px; text-align: center; font-size: 12px; color: #777; }
+    </style>
+</head>
+<body>
+    <table class="main" width="100%">
+        <tr>
+            <td class="header">
+                <h1>📊 Monthly Trekking Report - {{ month_year }}</h1>
+            </td>
+        </tr>
+        <tr>
+            <td class="content">
+                <p>Hi {{ adminName }},</p>
+                <p>Here is the activity summary for <strong>{{ month_year }}</strong>.</p>
+                
+                <div class="stats-container">
+                    <div class="stat-box">
+                        <h3>{{ total_treks }}</h3>
+                        <p>TREKS CONDUCTED</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3>{{ total_participants }}</h3>
+                        <p>TOTAL PARTICIPANTS</p>
+                    </div>
+                </div>
+
+                <h2 style="font-size: 18px; color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Most Popular Treks</h2>
+                
+                <table class="popular-treks">
+                    <thead>
+                        <tr>
+                            <th>Trek Name</th>
+                            <th>Participants</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trek in popular_treks %}
+                        <tr>
+                            <td>{{ trek.name }}</td>
+                            <td>{{ trek.count }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="2" style="text-align:center; color:#999;">No treks conducted this month.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td class="footer">
+                <p>Generated automatically on the 1st of every month.</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

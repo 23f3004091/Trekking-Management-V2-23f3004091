@@ -53,8 +53,13 @@ const handleLogout = () => {
             </router-link>
           </li>
           <li class="nav-item ms-1">
-            <router-link to="/register" class="btn btn-tma btn-sm px-3 py-2">
-              <i class="bi bi-person-plus me-1"></i> Register
+            <router-link to="/register-trekker" class="btn btn-tma btn-sm px-3 py-2">
+              <i class="bi bi-person-plus me-1"></i> Register as Trekker
+            </router-link>
+          </li>
+          <li class="nav-item ms-1">
+            <router-link to="/register-staff" class="btn btn-tma btn-sm px-3 py-2">
+              <i class="bi bi-person-plus me-1"></i> Apply as Staff
             </router-link>
           </li>
         </ul>

@@ -95,7 +95,7 @@ const executeBooking = async () => {
                 class="btn btn-tma btn-sm w-100 mt-3"
                 @click="confirmBooking(trek)"
                 :id="`book-trek-${trek.id}`"
-                :disabled="t"
+                :disabled="filteredTreks.already_booked == true"
               >
                 <i class="bi bi-lightning-charge-fill me-2"></i>Book Now
                 <span class="ms-1 opacity-75">({{ trek.available_slots }} left)</span>
