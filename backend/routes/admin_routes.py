@@ -1,6 +1,6 @@
 
 from flask import Blueprint, jsonify, request
-from models import Trek, StaffProfile, Booking, TrekStatus, Trekker, BookingStatus, User, ProfileStatus
+from models import Trek, StaffProfile, Booking, TrekStatus, Trekker, BookingStatus, User, ProfileStatus, DifficultyLevel
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
 admin_bp = Blueprint('admin', __name__)
@@ -12,12 +12,12 @@ def summary():
     total_trekkers = Trekker.query.count()
     total_staff = StaffProfile.query.count()
     total_bookings = Booking.query.count()
-    print({
-        "total_trekkers": total_trekkers,
-        "total_staff": total_staff,
-        "total_treks": total_treks,
-        "total_bookings": total_bookings
-    })
+    # print({
+    #     "total_trekkers": total_trekkers,
+    #     "total_staff": total_staff,
+    #     "total_treks": total_treks,
+    #     "total_bookings": total_bookings
+    # })
     return jsonify({
         "total_trekkers": total_trekkers,
         "total_staff": total_staff,
@@ -25,18 +25,20 @@ def summary():
         "total_bookings": total_bookings
     })
 
-@admin_bp.route('/Staff', methods=['GET'])
+@admin_bp.route('/staff', methods=['GET'])
 @jwt_required()
 def get_users():
     users = StaffProfile.query.all()
-    user_list = [{"id": user.id, "user_id": user.user_id, "contact_details": user.contact_details, "status": user.status.value} for user in users]
+    
+    user_list = [{"id": user.id, "user_id": user.user_id, "username" : user.user.username, "email" : user.user.email, "contact_details": user.contact_details, "status": user.status.value, "blacklisted": user.blacklisted} for user in users]
+    # print(user_list)
     return jsonify({"users": user_list})
 
 @admin_bp.route('/trekkers', methods=['GET'])
 @jwt_required()
 def get_trekkers():
     trekkers = Trekker.query.all()
-    trekker_list = [{"id": trekker.id, "user_id": trekker.user_id, "age": trekker.age} for trekker in trekkers]
+    trekker_list = [{"id": trekker.id, "user_id": trekker.user_id, "age": trekker.age, "blacklisted" : trekker.blacklisted} for trekker in trekkers]
     return jsonify({"trekkers": trekker_list})
 
 @admin_bp.route('/treks', methods=['GET'])
@@ -236,7 +238,7 @@ def approve_staff():
     
     staff_profile.status = ProfileStatus.APPROVED
     db.session.commit()
-    return jsonify({"message": "Staff profile approved successfully", "staff_profile": {"id": staff_profile.id, "status": staff_profile.status}})
+    return jsonify({"message": "Staff profile approved successfully", "staff_profile": {"id": staff_profile.id, "status": staff_profile.status.value}})
 
 @admin_bp.route('/blacklist-staff', methods=['PATCH'])
 @jwt_required()
@@ -248,7 +250,10 @@ def reject_staff():
     if not staff_profile:
         return jsonify({"error": "Staff profile not found"}), 404
 
-    staff_profile.blacklisted = True
+    if staff_profile.blacklisted:
+        staff_profile.blacklisted = False
+    else:
+        staff_profile.blacklisted = True
     db.session.commit()
     return jsonify({"message": "Staff profile blacklisted successfully", "staff_profile": {"id": staff_profile.id, "blacklisted": staff_profile.blacklisted}})
 
@@ -262,6 +267,6 @@ def blacklist_trekker():
     if not trekker:
         return jsonify({"error": "Trekker not found"}), 404
 
-    trekker.blacklisted = True
+    trekker.blacklisted = not trekker.blacklisted
     db.session.commit()
     return jsonify({"message": "Trekker blacklisted successfully", "trekker": {"id": trekker.id, "blacklisted": trekker.blacklisted}})

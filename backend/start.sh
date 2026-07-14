@@ -16,7 +16,7 @@ trap cleanup SIGINT EXIT
 # 3. Start the services in the background using '&'
 # echo "Starting Redis (The Broker)..."
 # docker run --rm -p 6379:6379 redis &
-
+source .venv/bin/activate
 
 echo "Starting Flask (The API)..."
 python3 app.py &

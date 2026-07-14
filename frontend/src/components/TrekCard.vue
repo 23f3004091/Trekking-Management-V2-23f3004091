@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { ref } from 'vue'
 
 const props = defineProps({
   trek: { type: Object, required: true }

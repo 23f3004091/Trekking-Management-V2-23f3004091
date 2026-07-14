@@ -19,6 +19,10 @@ def summary():
     total_treks = Trek.query.count()
     total_bookings = Booking.query.filter_by(user_id=current_user_id).count()
 
+    print({
+        "total_treks": total_treks,
+        "total_bookings": total_bookings
+    })
     return jsonify({
         "total_treks": total_treks,
         "total_bookings": total_bookings
@@ -94,6 +98,12 @@ def book_trek(trek_id):
     if trek.available_slots == 0:
         return jsonify({"error": "No slots available"}), 400
     
+    is_booked = Booking.query.filter_by(user_id=current_user_id, trek_id=trek_id).first()
+    already_booked = False
+    if is_booked:
+        already_booked = True
+        # return jsonify({"error": "Already booked this trek"}), 400
+    
     trek.available_slots -= 1
     booking = Booking(user_id=current_user_id, trek_id=trek_id)
     
@@ -110,6 +120,7 @@ def book_trek(trek_id):
         "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
         "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
         "booking_date": booking.booking_date.strftime('%Y-%m-%d %H:%M') if booking.booking_date else "", 
+        "already_booked": already_booked,
         "status": booking.status.value if booking.status else "Booked"
     }}), 201
 

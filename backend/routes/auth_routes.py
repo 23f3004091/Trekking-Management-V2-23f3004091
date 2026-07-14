@@ -7,18 +7,6 @@ from extensions import db
 auth_bp = Blueprint('auth', __name__)
 
 
-@auth_bp.route("/refresh", methods=["POST"])
-@jwt_required(refresh=True)
-def refresh():
-    current_user = get_jwt_identity()
-    new_access_token = create_access_token(identity=current_user, fresh=False)
-    new_refresh_token = create_refresh_token(identity=current_user)
-    
-    return jsonify({
-        "access_token": new_access_token,
-        "refresh_token": new_refresh_token
-    }), 200
-
 @auth_bp.route('/register-trekker', methods=['POST'])
 def register():
     data = request.get_json()
@@ -64,7 +52,7 @@ def register_staff():
     db.session.add(new_user)
     db.session.commit()
 
-    staff_profile = StaffProfile(user_id=new_user.id, contact_details=contact_details, status=ProfileStatus.APPROVED)
+    staff_profile = StaffProfile(user_id=new_user.id, contact_details=contact_details, status=ProfileStatus.PENDING)
     db.session.add(staff_profile)
     db.session.commit()
 
@@ -91,6 +79,8 @@ def login():
             return jsonify({"error": "Profile is waiting for approval by admin"}), 403
         elif staff_profile.status == ProfileStatus.REJECTED:
             return jsonify({"error": "Profile has been rejected by admin"}), 403
+        elif staff_profile.status == ProfileStatus.APPROVED and staff_profile.blacklisted:
+            return jsonify({"error": "Staff is blacklisted"}), 403
         
     if user.role == UserRole.TREKKER:
         trekker_profile = Trekker.query.filter_by(user_id=user.id).first()
@@ -103,3 +93,22 @@ def login():
     access_token = create_access_token(identity=str(user.id),
                                        additional_claims=claims)
     return jsonify({"access_token": access_token, "refresh_token": refresh_token}), 200
+
+
+@auth_bp.route("/refresh", methods=["POST"])
+@jwt_required(refresh=True)
+def refresh():
+    current_user = get_jwt_identity()
+    user = User.query.get(int(current_user))
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    claims = {"role": user.role.value, "username": user.username}
+    
+    new_access_token = create_access_token(identity=current_user, fresh=False, additional_claims=claims)
+    new_refresh_token = create_refresh_token(identity=current_user, additional_claims = claims)
+    
+    return jsonify({
+        "access_token": new_access_token,
+        "refresh_token": new_refresh_token
+    }), 200

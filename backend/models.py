@@ -102,7 +102,7 @@ class Booking(CommonFields):
     __tablename__ = 'bookings'
     
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    trek_id = db.Column(db.Integer, db.ForeignKey('treks.id'), nullable=False)
+    trek_id = db.Column(db.Integer, db.ForeignKey('treks.id'))
     booking_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     status = db.Column(db.Enum(BookingStatus), default=BookingStatus.BOOKED)  # Booked, Cancelled, Completed
     
