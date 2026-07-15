@@ -288,10 +288,10 @@ const updateStatus = async (id, action) => {
                         </li>
                       </ul>
                     </div>
-                    <button class="btn btn-sm btn-outline-primary" @click="openEditModal(trek)" title="Edit" :disabled="trek.status == 'Completed'">
+                    <button class="btn btn-sm btn-outline-primary" @click="openEditModal(trek)" title="Edit" :disabled="trek.status === 'Completed' || trek.status === 'Cancelled'">
                       <i class="bi bi-pencil-fill"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(trek.id)" title="Delete" :disabled="trek.status == 'Completed'">
+                    <button class="btn btn-sm btn-outline-danger" @click="confirmDelete(trek.id)" title="Delete" :disabled="trek.status === 'Completed' || trek.status === 'Cancelled'">
                       <i class="bi bi-trash-fill"></i>
                     </button>
                   </div>

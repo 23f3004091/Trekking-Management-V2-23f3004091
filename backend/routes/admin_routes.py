@@ -262,7 +262,7 @@ def update_trek(trek_id):
         "start_date": fmt_dt(trek.start_date),
         "end_date": fmt_dt(trek.end_date),
         "staff_id": trek.staff_id,
-        "staff_name": trek.assigned_staff.username if trek.assigned_staff else "Unassigned",
+        "staff_name": trek.staff.username if trek.staff else "Unassigned",
         "status": trek.status.value if trek.status else "Pending"
     }})
 
@@ -370,7 +370,7 @@ def reject_staff():
     else:
         staff_profile.blacklisted = True
     db.session.commit()
-    cache.detele(CACHE_KEY_STAFF)
+    cache.delete(CACHE_KEY_STAFF)
     return jsonify({"message": "Staff profile blacklisted successfully", "staff_profile": {"id": staff_profile.id, "blacklisted": staff_profile.blacklisted}})
 
 @admin_bp.route('/blacklist-trekker', methods=['PATCH'])
