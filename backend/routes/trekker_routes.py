@@ -10,23 +10,23 @@ from tasks import export_booking_history_csv
 
 trekker_bp = Blueprint('trekker', __name__)
 
+def fmt_dt(dt):
+    """Return a plain YYYY-MM-DD date string, or None."""
+    if not dt:
+        return None
+    return dt.strftime('%Y-%m-%d')
+
 @trekker_bp.route('/summary', methods=['GET'])
 @jwt_required()
 def summary():
     current_user_id = get_jwt_identity()
-    # print(current_user_id)
     trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
-    # print(trekker_profile)
     if not trekker_profile:
         return jsonify({"error": "Trekker profile not found"}), 404
 
     total_treks = Trek.query.count()
     total_bookings = Booking.query.filter_by(user_id=current_user_id).count()
 
-    print({
-        "total_treks": total_treks,
-        "total_bookings": total_bookings
-    })
     return jsonify({
         "total_treks": total_treks,
         "total_bookings": total_bookings
@@ -48,18 +48,16 @@ def get_treks():
         if trek.status in [TrekStatus.APPROVED, TrekStatus.OPEN]:
             duration = (trek.end_date - trek.start_date).days if (trek.end_date and trek.start_date) else 1
             trek_list.append({
-                "id": trek.id, 
-                "trek_name": trek.trek_name, 
-                "location": trek.location, 
-                "difficulty": trek.difficulty.value if trek.difficulty else "Easy", 
+                "id": trek.id,
+                "trek_name": trek.trek_name,
+                "location": trek.location,
+                "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
                 "available_slots": trek.available_slots,
-                "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
-                "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
+                "start_date": fmt_dt(trek.start_date),
+                "end_date": fmt_dt(trek.end_date),
                 "duration_days": duration if duration > 0 else 1,
                 "status": trek.status.value if trek.status else "Open",
-                # "alread_booked": True if trek.bookings.filter_by(user_id=current_user_id).first() else False
             })
-        # print(trek.bookings)
     
     return jsonify({"treks": trek_list}), 200
     
@@ -75,15 +73,15 @@ def get_history():
 
     history = Booking.query.filter_by(user_id=trekker_profile.user_id).all()
     history_list = [{
-        "id": b.id, 
-        "user_id": b.user_id, 
-        "trek_id": b.trek_id, 
+        "id": b.id,
+        "user_id": b.user_id,
+        "trek_id": b.trek_id,
         "trek_name": b.treks.trek_name if b.treks else "Unknown Trek",
         "location": b.treks.location if b.treks else "",
         "difficulty": b.treks.difficulty.value if (b.treks and b.treks.difficulty) else "Easy",
-        "start_date": b.treks.start_date.strftime('%Y-%m-%d') if (b.treks and b.treks.start_date) else "",
-        "end_date": b.treks.end_date.strftime('%Y-%m-%d') if (b.treks and b.treks.end_date) else "",
-        "booking_date": b.booking_date.strftime('%Y-%m-%d %H:%M') if b.booking_date else "", 
+        "start_date": fmt_dt(b.treks.start_date) if (b.treks and b.treks.start_date) else None,
+        "end_date": fmt_dt(b.treks.end_date) if (b.treks and b.treks.end_date) else None,
+        "booking_date": fmt_dt(b.booking_date),
         "status": b.status.value if b.status else "Booked"
     } for b in history]
 
@@ -115,31 +113,17 @@ def book_trek(trek_id):
     
     db.session.add(booking)
     db.session.commit()
-    
-    print({"message": "Booking created successfully", "booking": {
-        "id": booking.id, 
-        "user_id": booking.user_id, 
-        "trek_id": booking.trek_id, 
-        "trek_name": trek.trek_name,
-        "location": trek.location,
-        "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
-        "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
-        "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
-        "booking_date": booking.booking_date.strftime('%Y-%m-%d %H:%M') if booking.booking_date else "", 
-        "already_booked": already_booked,
-        "status": booking.status.value if booking.status else "Booked"
-    }})
 
     return jsonify({"message": "Booking created successfully", "booking": {
-        "id": booking.id, 
-        "user_id": booking.user_id, 
-        "trek_id": booking.trek_id, 
+        "id": booking.id,
+        "user_id": booking.user_id,
+        "trek_id": booking.trek_id,
         "trek_name": trek.trek_name,
         "location": trek.location,
         "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
-        "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
-        "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
-        "booking_date": booking.booking_date.strftime('%Y-%m-%d %H:%M') if booking.booking_date else "", 
+        "start_date": fmt_dt(trek.start_date),
+        "end_date": fmt_dt(trek.end_date),
+        "booking_date": fmt_dt(booking.booking_date),
         "already_booked": already_booked,
         "status": booking.status.value if booking.status else "Booked"
     }}), 201
@@ -190,32 +174,32 @@ def get_profile():
         "bio": trekker_profile.bio or "",
         "emergency_contact": trekker_profile.emergency_contact or "",
         "blacklisted": trekker_profile.blacklisted,
-        "member_since": trekker_profile.created_at.strftime('%Y-%m-%d') if trekker_profile.created_at else ""
+        "member_since": fmt_dt(trekker_profile.created_at)
     }), 200
 
 
-# @trekker_bp.route('/profile', methods=['PATCH'])
-# @jwt_required()
-# def update_profile():
-#     current_user_id = get_jwt_identity()
-#     trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
-#     if not trekker_profile:
-#         return jsonify({"error": "Trekker profile not found"}), 404
+@trekker_bp.route('/profile', methods=['PATCH'])
+@jwt_required()
+def update_profile():
+    current_user_id = get_jwt_identity()
+    trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
+    if not trekker_profile:
+        return jsonify({"error": "Trekker profile not found"}), 404
 
-#     data = request.get_json()
-#     if 'full_name' in data:
-#         trekker_profile.full_name = data['full_name']
-#     if 'age' in data:
-#         trekker_profile.age = int(data['age']) if data['age'] else None
-#     if 'phone' in data:
-#         trekker_profile.phone = data['phone']
-#     if 'bio' in data:
-#         trekker_profile.bio = data['bio']
-#     if 'emergency_contact' in data:
-#         trekker_profile.emergency_contact = data['emergency_contact']
+    data = request.get_json()
+    if 'full_name' in data:
+        trekker_profile.full_name = data['full_name']
+    if 'age' in data:
+        trekker_profile.age = int(data['age']) if data['age'] else None
+    if 'phone' in data:
+        trekker_profile.phone = data['phone']
+    if 'bio' in data:
+        trekker_profile.bio = data['bio']
+    if 'emergency_contact' in data:
+        trekker_profile.emergency_contact = data['emergency_contact']
 
-#     db.session.commit()
-#     return jsonify({"message": "Profile updated successfully"}), 200
+    db.session.commit()
+    return jsonify({"message": "Profile updated successfully"}), 200
 
 
 @trekker_bp.route('/export-history', methods=['POST'])

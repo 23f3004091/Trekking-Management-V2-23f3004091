@@ -15,12 +15,16 @@ onMounted(() => {
 })
 
 const filteredBookings = computed(() => {
-  const q = searchQuery.value
+  const q = searchQuery.value.toLowerCase()
   return (adminStore.bookingList || []).filter(b => {
     const matchSearch = !q ||
       b.id?.toString().includes(q) ||
       b.user_id?.toString().includes(q) ||
-      b.trek_id?.toString().includes(q)
+      b.trek_id?.toString().includes(q) ||
+      b.username?.toLowerCase().includes(q) ||
+      b.email?.toLowerCase().includes(q) ||
+      b.trek_name?.toLowerCase().includes(q) ||
+      b.location?.toLowerCase().includes(q)
     const matchStatus = activeFilter.value.status === 'All' || b.status === activeFilter.value.status
     return matchSearch && matchStatus
   })
@@ -39,8 +43,7 @@ const getStatusClass = (s) => {
 const formatDate = (d) => {
   if (!d) return 'N/A'
   return new Date(d).toLocaleDateString(undefined, {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit'
+    year: 'numeric', month: 'short', day: 'numeric'
   })
 }
 
@@ -62,7 +65,7 @@ const updateBookingStatus = async (id, action) => {
     </div>
 
     <SearchBar
-      placeholder="Search by Booking ID, User ID, or Trek ID..."
+      placeholder="Search by ID, user, trek name, location..."
       :filters="[
         { key: 'status', label: 'Status', options: ['All', 'Booked', 'Cancelled', 'Completed'] }
       ]"
@@ -85,19 +88,40 @@ const updateBookingStatus = async (id, action) => {
             <thead>
               <tr>
                 <th>Booking #</th>
-                <th>User ID</th>
-                <th>Trek ID</th>
-                <th>Booking Date</th>
+                <th>Trekker</th>
+                <th>Trek</th>
+                <th>Location</th>
+                <th>Booked On</th>
                 <th>Status</th>
                 <th class="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="booking in filteredBookings" :key="booking.id">
-                <td class="fw-bold">#{{ booking.id }}</td>
-                <td class="text-muted">User #{{ booking.user_id }}</td>
-                <td class="text-muted">Trek #{{ booking.trek_id }}</td>
+                <td class="fw-bold text-muted">#{{ booking.id }}</td>
                 <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center justify-content-center rounded-circle fw-bold"
+                      style="width:32px;height:32px;background:var(--tma-primary-light);color:var(--tma-primary);font-size:0.8rem;flex-shrink:0;">
+                      {{ (booking.username || 'U').charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <div class="fw-semibold small">{{ booking.username || `User #${booking.user_id}` }}</div>
+                      <div class="text-muted" style="font-size:0.75rem;">
+                        <i class="bi bi-envelope me-1"></i>{{ booking.email || '—' }}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="fw-semibold small">{{ booking.trek_name || `Trek #${booking.trek_id}` }}</div>
+                  <div class="text-muted" style="font-size:0.75rem;">ID #{{ booking.trek_id }}</div>
+                </td>
+                <td>
+                  <i class="bi bi-geo-alt-fill text-primary me-1"></i>
+                  <span class="small">{{ booking.location || '—' }}</span>
+                </td>
+                <td class="small">
                   <i class="bi bi-calendar2-event text-muted me-1"></i>
                   {{ formatDate(booking.booking_date) }}
                 </td>

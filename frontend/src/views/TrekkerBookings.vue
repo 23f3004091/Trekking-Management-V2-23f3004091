@@ -45,6 +45,13 @@ const formatDate = (d) => {
   })
 }
 
+const formatDateOnly = (d) => {
+  if (!d) return 'N/A'
+  return new Date(d).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric'
+  })
+}
+
 const getDifficultyClass = (d) => {
   if (d === 'Easy') return 'badge-easy'
   if (d === 'Moderate') return 'badge-moderate'
@@ -113,11 +120,11 @@ const executeCancel = async () => {
             <thead>
               <tr>
                 <th>Booking #</th>
-                <th>Trek ID</th>
+                <th>Trek</th>
                 <th>Location</th>
-                <th>Date</th>
+                <th>Trek Dates</th>
                 <th>Difficulty</th>
-                <th>Booking Date</th>
+                <th>Booked On</th>
                 <th>Status</th>
                 <th class="text-end">Actions</th>
               </tr>
@@ -126,19 +133,23 @@ const executeCancel = async () => {
               <tr v-for="booking in filteredBookings" :key="booking.id">
                 <td class="fw-bold">#{{ booking.id }}</td>
                 <td>
-                  <span class="badge rounded-pill" style="background: rgba(45,106,79,0.1); color: var(--primary); padding: 0.35rem 0.75rem;">
-                    Trek #{{ booking.trek_id }}
-                  </span>
+                  <div class="fw-semibold small">{{ booking.trek_name || `Trek #${booking.trek_id}` }}</div>
+                  <div class="text-muted" style="font-size:0.75rem;">ID #{{ booking.trek_id }}</div>
                 </td>
                 <td>
                   <i class="bi bi-geo-alt-fill text-primary me-1"></i>
                   {{ booking.location }}
                 </td>
                 <td class="align-middle text-nowrap">
-                  <div class="d-flex">
-                    <!-- Added the missing calendar icon class here -->
-                    <i class="bi bi-calendar3 text-secondary me-2"></i>
-                    <span>{{ booking.start_date ?? 'N/A' }} <span class="text-muted mx-1">to</span> {{ booking.end_date ?? 'N/A' }}</span>
+                  <div class="d-flex flex-column">
+                    <div class="small">
+                      <i class="bi bi-calendar-event text-primary me-1"></i>
+                      {{ formatDateOnly(booking.start_date) }}
+                    </div>
+                    <div class="small text-muted">
+                      <i class="bi bi-arrow-right me-1"></i>
+                      {{ formatDateOnly(booking.end_date) }}
+                    </div>
                   </div>
                 </td>
                 <td>

@@ -244,18 +244,35 @@ onMounted(() => {
                 <table class="table tma-table mb-0 align-middle">
                   <thead>
                     <tr>
-                      <th>Profile ID</th>
-                      <th>User ID</th>
-                      <th>Contact Details</th>
+                      <th>#</th>
+                      <th>Staff Member</th>
+                      <th>Specialization</th>
+                      <th>Contact</th>
                       <th>Status</th>
                       <th class="text-end">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-for="staff in pendingStaff" :key="staff.id">
-                      <td class="text-muted fw-medium">#{{ staff.id }}</td>
-                      <td class="fw-semibold">User #{{ staff.user_id }}</td>
-                      <td>{{ staff.contact_details || '—' }}</td>
+                      <td class="text-muted fw-medium small">#{{ staff.id }}</td>
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="d-flex align-items-center justify-content-center rounded-circle fw-bold"
+                            style="width:32px;height:32px;background:var(--tma-warning-light);color:var(--tma-gold);font-size:0.82rem;flex-shrink:0;">
+                            {{ (staff.full_name || staff.username || 'S').charAt(0).toUpperCase() }}
+                          </div>
+                          <div>
+                            <div class="fw-semibold small">{{ staff.full_name || '—' }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">
+                              <i class="bi bi-person me-1"></i>{{ staff.username }}
+                              <span class="mx-1">·</span>
+                              <i class="bi bi-envelope me-1"></i>{{ staff.email || '—' }}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="small">{{ staff.specialization || '—' }}</td>
+                      <td class="small">{{ staff.contact_details || '—' }}</td>
                       <td>
                         <span class="badge-status badge-pending">
                           <i class="bi bi-hourglass-split me-1"></i>Pending

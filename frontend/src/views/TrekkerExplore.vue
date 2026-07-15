@@ -51,6 +51,13 @@ const executeBooking = async () => {
     showToast(err.response?.data?.error || 'Failed to book trek', 'error')
   }
 }
+
+const formatDT = (d) => {
+  if (!d) return 'N/A'
+  return new Date(d).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric'
+  })
+}
 </script>
 
 <template>
@@ -123,7 +130,7 @@ const executeBooking = async () => {
       id="bookingConfirmModal"
       v-model="showBookingModal"
       :title="`Book: ${trekToBook?.trek_name}`"
-      :message="`You're about to book '${trekToBook?.trek_name}' at ${trekToBook?.location}. ${trekToBook?.available_slots} slots available. Confirm your booking?`"
+      :message="`You're about to book '${trekToBook?.trek_name}' at ${trekToBook?.location}.\n\nStart: ${formatDT(trekToBook?.start_date)}  →  End: ${formatDT(trekToBook?.end_date)}\n\n${trekToBook?.available_slots} slot(s) available. Confirm your booking?`"
       confirmText="Confirm Booking"
       confirmClass="btn-tma"
       @confirm="executeBooking"

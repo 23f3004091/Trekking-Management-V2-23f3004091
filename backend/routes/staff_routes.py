@@ -6,6 +6,12 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 staff_bp = Blueprint('staff', __name__)
 
+def fmt_dt(dt):
+    """Return a plain YYYY-MM-DD date string, or None."""
+    if not dt:
+        return None
+    return dt.strftime('%Y-%m-%d')
+
 @staff_bp.route('/profile', methods=['GET'])
 @jwt_required()
 def get_profile():
@@ -27,7 +33,7 @@ def get_profile():
         "bio": staff_profile.bio or "",
         "status": staff_profile.status.value if staff_profile.status else "Pending",
         "blacklisted": staff_profile.blacklisted,
-        "member_since": staff_profile.created_at.strftime('%Y-%m-%d') if staff_profile.created_at else ""
+        "member_since": fmt_dt(staff_profile.created_at)
     }), 200
 
 
@@ -62,9 +68,7 @@ def update_profile():
 @jwt_required()
 def summary():
     current_user_id = get_jwt_identity()
-    # print(current_user_id)
     staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()
-    # print(staff_profile)
     if not staff_profile:
         return jsonify({"error": "Staff profile not found"}), 404
 
@@ -88,13 +92,13 @@ def get_treks():
 
     treks = Trek.query.filter_by(staff_id=staff_profile.user_id).all()
     trek_list = [{
-        "id": trek.id, 
-        "trek_name": trek.trek_name, 
-        "location": trek.location, 
-        "difficulty": trek.difficulty.value if trek.difficulty else "Easy", 
+        "id": trek.id,
+        "trek_name": trek.trek_name,
+        "location": trek.location,
+        "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
         "available_slots": trek.available_slots,
-        "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
-        "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
+        "start_date": fmt_dt(trek.start_date),
+        "end_date": fmt_dt(trek.end_date),
         "registered_count": len(trek.bookings),
         "status": trek.status.value if trek.status else "Pending"
     } for trek in treks]
@@ -117,13 +121,17 @@ def get_bookings(trek_id):
         return jsonify({"error": "Trek not found"}), 404
 
     booking_list = [{
-        "id": booking.id, 
-        "user_id": booking.user_id, 
+        "id": booking.id,
+        "user_id": booking.user_id,
         "username": booking.trekker.username if booking.trekker else f"User #{booking.user_id}",
         "email": booking.trekker.email if booking.trekker else "",
-        "trek_id": booking.trek_id, 
+        "trek_id": booking.trek_id,
         "trek_name": trek.trek_name,
-        "booking_date": booking.booking_date.strftime('%Y-%m-%d %H:%M') if booking.booking_date else "", 
+        "location": trek.location,
+        "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
+        "start_date": fmt_dt(trek.start_date),
+        "end_date": fmt_dt(trek.end_date),
+        "booking_date": fmt_dt(booking.booking_date),
         "status": booking.status.value if booking.status else "Booked"
     } for booking in trek.bookings]
 
@@ -143,12 +151,12 @@ def get_users_for_trek(trek_id):
         return jsonify({"users": [], "message": "No users found for this trek."}), 200
         
     user_data = [{
-        "id": booking.trekker.id if booking.trekker else booking.user_id, 
-        "username": booking.trekker.username if booking.trekker else f"User #{booking.user_id}", 
+        "id": booking.trekker.id if booking.trekker else booking.user_id,
+        "username": booking.trekker.username if booking.trekker else f"User #{booking.user_id}",
         "email": booking.trekker.email if booking.trekker else "",
         "booking_id": booking.id,
         "booking_status": booking.status.value if booking.status else "Booked",
-        "booking_date": booking.booking_date.strftime('%Y-%m-%d %H:%M') if booking.booking_date else ""
+        "booking_date": fmt_dt(booking.booking_date)
     } for booking in bookings]
 
     return jsonify({"users": user_data}), 200

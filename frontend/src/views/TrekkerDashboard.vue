@@ -12,6 +12,10 @@ const trekkerStore = useTrekkerStore()
 const username = computed(() => authStore.user?.username || 'Trekker')
 const firstLetter = computed(() => username.value.charAt(0).toUpperCase())
 
+const recentBookings = computed(() => {
+  return (trekkerStore.history || []).slice(0, 5)
+})
+
 // ── CSV Export state ─────────────────────────────────────────────────────────
 const exportStatus = ref('idle')   // idle | processing | done | error
 const exportTaskId = ref(null)
@@ -74,11 +78,19 @@ function downloadCsv() {
 
 onMounted(() => {
   trekkerStore.fetchSummary()
+  trekkerStore.fetchHistory()
 })
 
 onUnmounted(() => {
   if (pollInterval) clearInterval(pollInterval)
 })
+
+const formatDateTime = (d) => {
+  if (!d) return 'N/A'
+  return new Date(d).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric'
+  })
+}
 </script>
 
 <template>
@@ -252,6 +264,72 @@ onUnmounted(() => {
                 <div v-if="exportStatus === 'error' && exportError" class="small text-danger px-1">
                   <i class="bi bi-exclamation-circle me-1"></i>{{ exportError }}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Bookings -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="tma-card">
+            <div class="card-header-custom d-flex align-items-center justify-content-between">
+              <h5 class="mb-0">
+                <i class="bi bi-clock-history me-2 text-primary"></i>Recent Bookings
+              </h5>
+              <router-link to="/trekker/bookings" class="btn btn-sm btn-outline-secondary" style="font-size:0.8rem;">
+                <i class="bi bi-arrow-right me-1"></i>View All
+              </router-link>
+            </div>
+            <div class="card-body p-0">
+              <div v-if="trekkerStore.isLoading" class="py-4">
+                <LoadingSpinner message="Loading bookings..." />
+              </div>
+              <div v-else-if="recentBookings.length === 0" class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
+                <i class="bi bi-journal-x fs-2 mb-2 opacity-50"></i>
+                <p class="mb-0 small fw-semibold">No bookings yet — explore and book a trek!</p>
+              </div>
+              <div v-else class="table-responsive">
+                <table class="table tma-table mb-0 align-middle">
+                  <thead>
+                    <tr>
+                      <th>Booking #</th>
+                      <th>Trek</th>
+                      <th>Location</th>
+                      <th>Trek Start (Date &amp; Time)</th>
+                      <th>Booked On</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="booking in recentBookings" :key="booking.id">
+                      <td class="fw-bold text-muted">#{{ booking.id }}</td>
+                      <td class="fw-semibold small">{{ booking.trek_name || `Trek #${booking.trek_id}` }}</td>
+                      <td>
+                        <i class="bi bi-geo-alt-fill text-primary me-1"></i>
+                        <span class="small">{{ booking.location || '—' }}</span>
+                      </td>
+                      <td class="small text-nowrap">
+                        <i class="bi bi-calendar-event text-primary me-1"></i>
+                        {{ formatDateTime(booking.start_date) }}
+                      </td>
+                      <td class="small text-nowrap">
+                        <i class="bi bi-clock text-muted me-1"></i>
+                        {{ formatDateTime(booking.booking_date) }}
+                      </td>
+                      <td>
+                        <span class="badge-status" :class="{
+                          'badge-booked': booking.status === 'Booked',
+                          'badge-cancelled': booking.status === 'Cancelled',
+                          'badge-completed': booking.status === 'Completed'
+                        }">
+                          {{ booking.status }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

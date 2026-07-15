@@ -70,6 +70,6 @@ def index():
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-        seed_database()
+        # seed_database()
         
     app.run(debug=True, port=8000)

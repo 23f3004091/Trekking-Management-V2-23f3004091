@@ -22,20 +22,16 @@ const filteredTrekkers = computed(() => {
   return (adminStore.trekkerList || []).filter(t =>
     t.id?.toString().includes(q) ||
     t.user_id?.toString().includes(q) ||
+    t.username?.toLowerCase().includes(q) ||
+    t.email?.toLowerCase().includes(q) ||
+    t.full_name?.toLowerCase().includes(q) ||
     t.age?.toString().includes(q)
   )
 })
 
-// const confirmBlacklist = (id) => {
-//   userToBlacklist.value = id
-//   showBlacklistModal.value = true
-// }
-
 const executeBlacklist = async (id) => {
-  // if (!userToBlacklist.value) return
   try {
     await adminStore.blacklistTrekker(id)
-    // if(userToBlacklist.value)
     showToast('User blacklist status updated', 'success')
   } catch (err) {
     showToast('Failed to blacklist user', 'error')
@@ -51,7 +47,7 @@ const executeBlacklist = async (id) => {
     </div>
 
     <SearchBar
-      placeholder="Search by Trekker ID, User ID, or age..."
+      placeholder="Search by username, name, email, ID, or age..."
       @search="q => searchQuery = q"
     />
 
@@ -69,18 +65,44 @@ const executeBlacklist = async (id) => {
           <table class="table tma-table mb-0 align-middle">
             <thead>
               <tr>
-                <th>Profile ID</th>
-                <th>User ID</th>
+                <th>#</th>
+                <th>Trekker</th>
+                <th>Contact</th>
                 <th>Age</th>
-                <th>Blacklisted</th>
+                <th>Emergency Contact</th>
+                <th>Status</th>
                 <th class="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="trekker in filteredTrekkers" :key="trekker.id">
-                <td class="text-muted fw-medium">#{{ trekker.id }}</td>
-                <td class="fw-semibold">User #{{ trekker.user_id }}</td>
-                <td>{{ trekker.age || '—' }}</td>
+                <td class="text-muted fw-medium small">#{{ trekker.id }}</td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center justify-content-center rounded-circle fw-bold"
+                      style="width:34px;height:34px;background:var(--tma-primary-light);color:var(--tma-primary);font-size:0.85rem;flex-shrink:0;">
+                      {{ (trekker.full_name || trekker.username || '?').charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <div class="fw-semibold small">{{ trekker.full_name || '—' }}</div>
+                      <div class="text-muted" style="font-size:0.78rem;">
+                        <i class="bi bi-person me-1"></i>{{ trekker.username }}
+                        <span class="mx-1">·</span>
+                        <i class="bi bi-envelope me-1"></i>{{ trekker.email || '—' }}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="small">
+                    <i class="bi bi-telephone-fill text-primary me-1"></i>
+                    {{ trekker.phone || '—' }}
+                  </div>
+                </td>
+                <td class="text-center fw-semibold small">{{ trekker.age || '—' }}</td>
+                <td>
+                  <span class="small text-muted">{{ trekker.emergency_contact || '—' }}</span>
+                </td>
                 <td>
                   <span class="badge-status" :class="trekker.blacklisted ? 'badge-closed' : 'badge-open'">
                     <i class="bi me-1" :class="trekker.blacklisted ? 'bi-ban' : 'bi-check-circle'"></i>

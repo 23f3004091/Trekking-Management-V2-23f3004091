@@ -144,6 +144,11 @@ const formatDate = (d) => {
             <div class="card-body p-4">
               <ul class="list-unstyled mb-0">
                 <li class="d-flex align-items-center gap-2 py-2" style="border-bottom: 1px solid #f0f4f2;">
+                  <i class="bi bi-compass-fill text-primary"></i>
+                  <span class="text-muted small">Trek Name</span>
+                  <span class="ms-auto fw-semibold small">{{ currentTrek.trek_name }}</span>
+                </li>
+                <li class="d-flex align-items-center gap-2 py-2" style="border-bottom: 1px solid #f0f4f2;">
                   <i class="bi bi-geo-alt-fill text-primary"></i>
                   <span class="text-muted small">Location</span>
                   <span class="ms-auto fw-semibold small">{{ currentTrek.location }}</span>
@@ -159,6 +164,16 @@ const formatDate = (d) => {
                   <i class="bi bi-people-fill text-success"></i>
                   <span class="text-muted small">Slots</span>
                   <span class="ms-auto fw-semibold small">{{ currentTrek.available_slots }} available</span>
+                </li>
+                <li class="d-flex align-items-center gap-2 py-2" style="border-bottom: 1px solid #f0f4f2;">
+                  <i class="bi bi-calendar-event text-primary"></i>
+                  <span class="text-muted small">Start</span>
+                  <span class="ms-auto fw-semibold small">{{ formatDate(currentTrek.start_date) }}</span>
+                </li>
+                <li class="d-flex align-items-center gap-2 py-2" style="border-bottom: 1px solid #f0f4f2;">
+                  <i class="bi bi-calendar-check text-accent"></i>
+                  <span class="text-muted small">End</span>
+                  <span class="ms-auto fw-semibold small">{{ formatDate(currentTrek.end_date) }}</span>
                 </li>
                 <li class="d-flex align-items-center gap-2 py-2">
                   <i class="bi bi-circle-fill" style="font-size: 0.5rem; color: var(--primary);"></i>
@@ -223,7 +238,8 @@ const formatDate = (d) => {
                     <tr>
                       <th>Booking #</th>
                       <th>Participant</th>
-                      <th>Booking Date</th>
+                      <th>Trek / Location</th>
+                      <th>Booked On</th>
                       <th>Status</th>
                       <th class="text-end">Update</th>
                     </tr>
@@ -243,7 +259,18 @@ const formatDate = (d) => {
                           </div>
                         </div>
                       </td>
-                      <td class="small">{{ formatDate(booking.booking_date) }}</td>
+                      <td>
+                        <div class="fw-semibold small">{{ booking.trek_name || '—' }}</div>
+                        <div class="small text-muted">
+                          <i class="bi bi-geo-alt-fill text-primary me-1"></i>{{ booking.location || '—' }}
+                        </div>
+                      </td>
+                      <td class="small text-nowrap">
+                        <div>
+                          <i class="bi bi-calendar2-event text-muted me-1"></i>
+                          {{ formatDate(booking.booking_date) }}
+                        </div>
+                      </td>
                       <td>
                         <span class="badge-status" :class="getStatusClass(booking.status)">{{ booking.status }}</span>
                       </td>

@@ -56,22 +56,22 @@ def send_daily_morning_reminders(self):
             print(participant.user)
             user_daily_reminder_mail.delay(
                 user_email=participant.user.email,
-                user_name=participant.user.username,
+                user_name=participant.user.full_name,
                 trek_name=trek.trek_name,
                 start_date=trek.start_date.strftime("%B %d, %Y"),
                 meeting_time=trek.start_date,
                 meeting_location=trek.location,
-                trek_leader_name=trek.staff.username,
-                trek_leader_phone=trek.staff.staff_profile.contact_details
+                trek_leader_name=trek.staff.full_name,
+                trek_leader_phone=trek.staff.staff_profile.phone
             )
             
-            print(f"Sending daily morning reminders for {participant.user.username}")
-            print(f"Trek Name: {trek.trek_name}")
-            print(f"Start Date: {trek.start_date}")
-            print(f"Meeting Time: {trek.start_date}")
-            print(f"Meeting Location: {trek.location}")
-            print(f"Trek Leader Name: {trek.staff.username}")
-            print(f"Trek Leader Phone: {trek.staff.staff_profile.contact_details}")
+            # print(f"Sending daily morning reminders for {participant.user.username}")
+            # print(f"Trek Name: {trek.trek_name}")
+            # print(f"Start Date: {trek.start_date}")
+            # print(f"Meeting Time: {trek.start_date}")
+            # print(f"Meeting Location: {trek.location}")
+            # print(f"Trek Leader Name: {trek.staff.username}")
+            # print(f"Trek Leader Phone: {trek.staff.staff_profile.contact_details}")
             # print(f"Instructions: {instructions_html}")
     
     return "Daily morning reminders have been sent."

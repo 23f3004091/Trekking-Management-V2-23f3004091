@@ -64,6 +64,24 @@ const getDifficultyClass = (d) => {
   return ''
 }
 
+// Format ISO-8601 UTC string to date-only label for the table
+const formatDateOnly = (d) => {
+  if (!d) return 'N/A'
+  return new Date(d).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric'
+  })
+}
+
+// Convert ISO-8601 UTC string to local 'YYYY-MM-DDTHH:MM' string
+// for use with <input type="datetime-local">, which expects local time.
+const toLocalInputValue = (isoUtcStr) => {
+  if (!isoUtcStr) return ''
+  const d = new Date(isoUtcStr)
+  // Shift by timezone offset to get local time as a 'YYYY-MM-DDTHH:MM' string
+  const offset = d.getTimezoneOffset() * 60000
+  return new Date(d.getTime() - offset).toISOString().slice(0, 16)
+}
+
 const getStatusClass = (s) => {
   if (!s) return ''
   const sl = s.toLowerCase()
@@ -93,8 +111,8 @@ const openEditModal = (trek) => {
     location: trek.location,
     difficulty: trek.difficulty,
     available_slots: trek.available_slots || 0,
-    start_date: trek.start_date ? trek.start_date.substring(0, 16) : '',
-    end_date: trek.end_date ? trek.end_date.substring(0, 16) : '',
+    start_date: toLocalInputValue(trek.start_date),
+    end_date: toLocalInputValue(trek.end_date),
     staff_name: trek.staff_name || ''
   }
   showTrekModal.value = true
@@ -220,10 +238,15 @@ const updateStatus = async (id, action) => {
                   {{ trek.available_slots ?? 'N/A' }}
                 </td>
                 <td class="align-middle text-nowrap">
-                  <div class="d-flex">
-                    <!-- Added the missing calendar icon class here -->
-                    <i class="bi bi-calendar3 text-secondary me-2"></i>
-                    <span>{{ trek.start_date ?? 'N/A' }} <span class="text-muted mx-1">to</span> {{ trek.end_date ?? 'N/A' }}</span>
+                  <div class="d-flex flex-column">
+                    <div class="small">
+                      <i class="bi bi-calendar-event text-primary me-1"></i>
+                      {{ formatDateOnly(trek.start_date) }}
+                    </div>
+                    <div class="small text-muted">
+                      <i class="bi bi-arrow-right me-1"></i>
+                      {{ formatDateOnly(trek.end_date) }}
+                    </div>
                   </div>
                 </td>
                 <td>
@@ -323,11 +346,11 @@ const updateStatus = async (id, action) => {
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Start Date &amp; Time *</label>
-                  <input type="datetime-local" class="form-control" v-model="formData.start_date" required>
+                  <input type="date" class="form-control" v-model="formData.start_date" required>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">End Date &amp; Time *</label>
-                  <input type="datetime-local" class="form-control" v-model="formData.end_date" required>
+                  <input type="date" class="form-control" v-model="formData.end_date" required>
                 </div>
               </form>
             </div>

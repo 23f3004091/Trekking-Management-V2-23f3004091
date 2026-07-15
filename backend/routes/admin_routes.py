@@ -5,6 +5,12 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
 admin_bp = Blueprint('admin', __name__)
 
+def fmt_dt(dt):
+    """Return a plain YYYY-MM-DD date string, or None."""
+    if not dt:
+        return None
+    return dt.strftime('%Y-%m-%d')
+
 @admin_bp.route('/summary', methods=['GET'])
 @jwt_required()
 def summary():
@@ -12,12 +18,6 @@ def summary():
     total_trekkers = Trekker.query.count()
     total_staff = StaffProfile.query.count()
     total_bookings = Booking.query.count()
-    # print({
-    #     "total_trekkers": total_trekkers,
-    #     "total_staff": total_staff,
-    #     "total_treks": total_treks,
-    #     "total_bookings": total_bookings
-    # })
     return jsonify({
         "total_trekkers": total_trekkers,
         "total_staff": total_staff,
@@ -29,16 +29,36 @@ def summary():
 @jwt_required()
 def get_users():
     users = StaffProfile.query.all()
-    
-    user_list = [{"id": user.id, "user_id": user.user_id, "username" : user.user.username, "email" : user.user.email, "contact_details": user.contact_details, "status": user.status.value, "blacklisted": user.blacklisted} for user in users]
-    # print(user_list)
+    user_list = [{
+        "id": user.id,
+        "user_id": user.user_id,
+        "username": user.user.username,
+        "email": user.user.email,
+        "full_name": user.full_name or "",
+        "phone": user.phone or "",
+        "contact_details": user.contact_details,
+        "specialization": user.specialization or "",
+        "experience_years": user.experience_years,
+        "status": user.status.value,
+        "blacklisted": user.blacklisted
+    } for user in users]
     return jsonify({"users": user_list})
 
 @admin_bp.route('/trekkers', methods=['GET'])
 @jwt_required()
 def get_trekkers():
     trekkers = Trekker.query.all()
-    trekker_list = [{"id": trekker.id, "user_id": trekker.user_id, "age": trekker.age, "blacklisted" : trekker.blacklisted} for trekker in trekkers]
+    trekker_list = [{
+        "id": trekker.id,
+        "user_id": trekker.user_id,
+        "username": trekker.user.username if trekker.user else f"User #{trekker.user_id}",
+        "email": trekker.user.email if trekker.user else "",
+        "full_name": trekker.full_name or "",
+        "phone": trekker.phone or "",
+        "age": trekker.age,
+        "emergency_contact": trekker.emergency_contact or "",
+        "blacklisted": trekker.blacklisted
+    } for trekker in trekkers]
     return jsonify({"trekkers": trekker_list})
 
 @admin_bp.route('/treks', methods=['GET'])
@@ -46,13 +66,13 @@ def get_trekkers():
 def get_treks():
     treks = Trek.query.all()
     trek_list = [{
-        "id": trek.id, 
-        "trek_name": trek.trek_name, 
-        "location": trek.location, 
-        "difficulty": trek.difficulty.value if trek.difficulty else "Easy", 
+        "id": trek.id,
+        "trek_name": trek.trek_name,
+        "location": trek.location,
+        "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
         "available_slots": trek.available_slots,
-        "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
-        "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
+        "start_date": fmt_dt(trek.start_date),
+        "end_date": fmt_dt(trek.end_date),
         "staff_id": trek.staff_id,
         "staff_name": trek.assigned_staff.username if trek.assigned_staff else "Unassigned",
         "status": trek.status.value if trek.status else "Pending"
@@ -64,14 +84,14 @@ def get_treks():
 def get_bookings():
     bookings = Booking.query.all()
     booking_list = [{
-        "id": booking.id, 
-        "user_id": booking.user_id, 
+        "id": booking.id,
+        "user_id": booking.user_id,
         "username": booking.trekker.username if booking.trekker else f"User #{booking.user_id}",
         "email": booking.trekker.email if booking.trekker else "",
-        "trek_id": booking.trek_id, 
+        "trek_id": booking.trek_id,
         "trek_name": booking.treks.trek_name if booking.treks else "Unknown Trek",
         "location": booking.treks.location if booking.treks else "",
-        "booking_date": booking.booking_date.strftime('%Y-%m-%d %H:%M') if booking.booking_date else "", 
+        "booking_date": fmt_dt(booking.booking_date),
         "status": booking.status.value if booking.status else "Booked"
     } for booking in bookings]
     return jsonify({"bookings": booking_list})
@@ -131,13 +151,13 @@ def create_trek():
     db.session.add(new_trek)
     db.session.commit()
     return jsonify({"message": "Trek created successfully", "trek": {
-        "id": new_trek.id, 
+        "id": new_trek.id,
         "trek_name": new_trek.trek_name,
         "location": new_trek.location,
         "difficulty": new_trek.difficulty.value if new_trek.difficulty else "Easy",
         "available_slots": new_trek.available_slots,
-        "start_date": new_trek.start_date.strftime('%Y-%m-%d') if new_trek.start_date else "",
-        "end_date": new_trek.end_date.strftime('%Y-%m-%d') if new_trek.end_date else "",
+        "start_date": fmt_dt(new_trek.start_date),
+        "end_date": fmt_dt(new_trek.end_date),
         "staff_id": new_trek.staff_id,
         "staff_name": staff.username,
         "status": new_trek.status.value if new_trek.status else "Pending"
@@ -183,13 +203,13 @@ def update_trek(trek_id):
 
     db.session.commit()
     return jsonify({"message": "Trek updated successfully", "trek": {
-        "id": trek.id, 
+        "id": trek.id,
         "trek_name": trek.trek_name,
         "location": trek.location,
         "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
         "available_slots": trek.available_slots,
-        "start_date": trek.start_date.strftime('%Y-%m-%d') if trek.start_date else "",
-        "end_date": trek.end_date.strftime('%Y-%m-%d') if trek.end_date else "",
+        "start_date": fmt_dt(trek.start_date),
+        "end_date": fmt_dt(trek.end_date),
         "staff_id": trek.staff_id,
         "staff_name": trek.assigned_staff.username if trek.assigned_staff else "Unassigned",
         "status": trek.status.value if trek.status else "Pending"
