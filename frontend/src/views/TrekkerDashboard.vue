@@ -1,9 +1,10 @@
 <script setup>
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useTrekkerStore } from '@/stores/trekker'
 import StatCard from '@/components/StatCard.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import apiClient from '@/axiosApi.js'
 
 const authStore = useAuthStore()
 const trekkerStore = useTrekkerStore()
@@ -11,8 +12,72 @@ const trekkerStore = useTrekkerStore()
 const username = computed(() => authStore.user?.username || 'Trekker')
 const firstLetter = computed(() => username.value.charAt(0).toUpperCase())
 
+// ── CSV Export state ─────────────────────────────────────────────────────────
+const exportStatus = ref('idle')   // idle | processing | done | error
+const exportTaskId = ref(null)
+const exportError  = ref(null)
+let   pollInterval = null
+
+async function triggerExport() {
+  exportStatus.value = 'processing'
+  exportError.value  = null
+  exportTaskId.value = null
+
+  try {
+    const res = await apiClient.post('/trekker/export-history')
+    // 202 Accepted – job is queued
+    exportTaskId.value = res.data.task_id
+    startPolling()
+  } catch (err) {
+    exportStatus.value = 'error'
+    exportError.value  = err.response?.data?.error || 'Failed to start export'
+  }
+}
+
+function startPolling() {
+  pollInterval = setInterval(async () => {
+    try {
+      const res = await apiClient.get(`/trekker/export-status/${exportTaskId.value}`)
+      if (res.data.status === 'SUCCESS') {
+        clearInterval(pollInterval)
+        pollInterval = null
+        exportStatus.value = 'done'
+      } else if (res.data.status === 'FAILURE') {
+        clearInterval(pollInterval)
+        pollInterval = null
+        exportStatus.value = 'error'
+        exportError.value  = res.data.error || 'Export failed'
+      }
+      // else still PENDING / STARTED — keep polling
+    } catch {
+      clearInterval(pollInterval)
+      pollInterval = null
+      exportStatus.value = 'error'
+      exportError.value  = 'Could not check export status'
+    }
+  }, 3000)
+}
+
+function downloadCsv() {
+  // Use direct browser navigation so the browser handles the download natively.
+  // JWT is passed as a query param because XHR/fetch on send_file responses
+  // is blocked by CORS (no CORS headers on Flask's file responses).
+  const token = authStore.accessToken
+  const url   = `http://localhost:8000/api/trekker/download-csv/${exportTaskId.value}?jwt=${token}`
+  const link  = document.createElement('a')
+  link.href   = url
+  link.setAttribute('download', 'booking_history.csv')
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
 onMounted(() => {
   trekkerStore.fetchSummary()
+})
+
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval)
 })
 </script>
 
@@ -124,6 +189,69 @@ onMounted(() => {
                   </div>
                   <i class="bi bi-chevron-right ms-auto text-muted"></i>
                 </router-link>
+
+                <!-- Export Booking History -->
+                <div
+                  id="export-booking-card"
+                  class="d-flex align-items-center gap-3 p-3 rounded-3"
+                  style="background: var(--tma-success-light, #f0fdf4); border: 1px solid rgba(22,163,74,0.2);"
+                >
+                  <div class="d-flex align-items-center justify-content-center rounded-2"
+                    style="width: 40px; height: 40px; background: #ffffff; border: 1px solid var(--tma-border); flex-shrink: 0;">
+                    <i class="bi bi-file-earmark-spreadsheet-fill" style="color: #16a34a;"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold" style="color: var(--tma-dark);">Export Booking History</div>
+                    <div class="small text-muted">Download your trek history as CSV</div>
+                  </div>
+
+                  <!-- idle: show Export button -->
+                  <button
+                    v-if="exportStatus === 'idle'"
+                    id="btn-export-history"
+                    class="btn btn-sm btn-tma ms-auto"
+                    style="white-space: nowrap;"
+                    @click="triggerExport"
+                  >
+                    <i class="bi bi-download me-1"></i>Export
+                  </button>
+
+                  <!-- processing: spinner -->
+                  <span
+                    v-else-if="exportStatus === 'processing'"
+                    class="ms-auto d-flex align-items-center gap-2 small text-muted"
+                  >
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    Processing…
+                  </span>
+
+                  <!-- done: Download button -->
+                  <button
+                    v-else-if="exportStatus === 'done'"
+                    id="btn-download-csv"
+                    class="btn btn-sm btn-success ms-auto"
+                    style="white-space: nowrap;"
+                    @click="downloadCsv"
+                  >
+                    <i class="bi bi-file-earmark-arrow-down me-1"></i>Download
+                  </button>
+
+                  <!-- error: retry -->
+                  <button
+                    v-else-if="exportStatus === 'error'"
+                    id="btn-export-retry"
+                    class="btn btn-sm btn-outline-danger ms-auto"
+                    style="white-space: nowrap;"
+                    @click="triggerExport"
+                    :title="exportError"
+                  >
+                    <i class="bi bi-arrow-clockwise me-1"></i>Retry
+                  </button>
+                </div>
+                <!-- error message -->
+                <div v-if="exportStatus === 'error' && exportError" class="small text-danger px-1">
+                  <i class="bi bi-exclamation-circle me-1"></i>{{ exportError }}
+                </div>
               </div>
             </div>
           </div>

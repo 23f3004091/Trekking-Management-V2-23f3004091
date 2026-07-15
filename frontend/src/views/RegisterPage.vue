@@ -11,7 +11,12 @@ const form = ref({
   username: '',
   email: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  full_name: '',
+  age: '',
+  phone: '',
+  bio: '',
+  emergency_contact: ''
 })
 
 const showPassword = ref(false)
@@ -44,7 +49,12 @@ const handleRegister = async () => {
     await apiClient.post('/auth/register-trekker', {
       username: form.value.username,
       email: form.value.email,
-      password: form.value.password
+      password: form.value.password,
+      full_name: form.value.full_name,
+      age: form.value.age || null,
+      phone: form.value.phone,
+      bio: form.value.bio,
+      emergency_contact: form.value.emergency_contact
     })
 
     // Auto-login after registration
@@ -108,6 +118,19 @@ const handleRegister = async () => {
           </div>
 
           <div class="col-12">
+            <label class="form-label" for="reg-fullname">
+              <i class="bi bi-person-badge me-1"></i>Full Name
+            </label>
+            <input
+              id="reg-fullname"
+              type="text"
+              class="form-control"
+              v-model="form.full_name"
+              placeholder="Your full name"
+            >
+          </div>
+
+          <div class="col-12">
             <label class="form-label" for="reg-email">
               <i class="bi bi-envelope me-1"></i>Email Address
             </label>
@@ -120,6 +143,59 @@ const handleRegister = async () => {
               autocomplete="email"
               required
             >
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label" for="reg-age">
+              <i class="bi bi-calendar2-heart me-1"></i>Age
+            </label>
+            <input
+              id="reg-age"
+              type="number"
+              min="1" max="120"
+              class="form-control"
+              v-model="form.age"
+              placeholder="Your age"
+            >
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label" for="reg-phone">
+              <i class="bi bi-telephone me-1"></i>Phone
+            </label>
+            <input
+              id="reg-phone"
+              type="tel"
+              class="form-control"
+              v-model="form.phone"
+              placeholder="e.g. +91 98765 43210"
+            >
+          </div>
+
+          <div class="col-12">
+            <label class="form-label" for="reg-emergency">
+              <i class="bi bi-heart-pulse me-1"></i>Emergency Contact
+            </label>
+            <input
+              id="reg-emergency"
+              type="text"
+              class="form-control"
+              v-model="form.emergency_contact"
+              placeholder="Name & phone number"
+            >
+          </div>
+
+          <div class="col-12">
+            <label class="form-label" for="reg-bio">
+              <i class="bi bi-chat-square-text me-1"></i>Bio <span class="text-muted fw-normal">(optional)</span>
+            </label>
+            <textarea
+              id="reg-bio"
+              class="form-control"
+              rows="2"
+              v-model="form.bio"
+              placeholder="Tell us about your trekking passion…"
+            ></textarea>
           </div>
 
           <div class="col-12">

@@ -113,6 +113,11 @@ const handleLogout = () => {
               <i class="bi bi-speedometer2"></i> Dashboard
             </router-link>
           </li>
+          <li class="nav-item">
+            <router-link class="nav-link" to="/staff/profile">
+              <i class="bi bi-person-badge"></i> Profile
+            </router-link>
+          </li>
           <li class="nav-item ms-2">
             <div class="navbar-user-badge">
               <div class="user-avatar">{{ firstLetter }}</div>

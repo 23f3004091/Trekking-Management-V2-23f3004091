@@ -7,6 +7,7 @@ export const useStaffStore = defineStore('staff', {
     treks: [],
     bookingsByTrek: {}, // Cache: { trekId: [bookings...] }
     usersByTrek: {},    // Cache: { trekId: [users...] }
+    profile: null,
     isLoading: false,
     error: null
   }),
@@ -20,6 +21,34 @@ export const useStaffStore = defineStore('staff', {
         this.summary = response.data;
       } catch (error) {
         this.error = error.response?.data?.error || 'Failed to load summary';
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async fetchProfile() {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await apiClient.get('/staff/profile');
+        this.profile = response.data;
+      } catch (error) {
+        this.error = error.response?.data?.error || 'Failed to load profile';
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async updateProfile(data) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        await apiClient.patch('/staff/profile', data);
+        this.profile = { ...this.profile, ...data };
+        return { success: true, message: 'Profile updated successfully' };
+      } catch (error) {
+        this.error = error.response?.data?.error || 'Failed to update profile';
+        return { success: false, message: this.error };
       } finally {
         this.isLoading = false;
       }

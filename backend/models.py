@@ -67,7 +67,11 @@ class Trekker(CommonFields):
     __tablename__ = 'trekkers'
     
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    full_name = db.Column(db.String(150), nullable=True)
     age = db.Column(db.Integer, nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    bio = db.Column(db.Text, nullable=True)
+    emergency_contact = db.Column(db.String(150), nullable=True)
     blacklisted = db.Column(db.Boolean, default=False, nullable=False)
     user = db.relationship('User', backref='trekker', lazy=True)
 
@@ -75,7 +79,12 @@ class StaffProfile(CommonFields):
     __tablename__ = 'staff_profiles'
     
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    full_name = db.Column(db.String(150), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
     contact_details = db.Column(db.String(255), nullable=True)
+    experience_years = db.Column(db.Integer, nullable=True)
+    specialization = db.Column(db.String(150), nullable=True)
+    bio = db.Column(db.Text, nullable=True)
     status = db.Column(db.Enum(ProfileStatus), default=ProfileStatus.PENDING)  # e.g., Active, On Leave
     blacklisted = db.Column(db.Boolean, default=False, nullable=False)
     

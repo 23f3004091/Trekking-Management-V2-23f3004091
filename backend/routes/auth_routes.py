@@ -13,7 +13,11 @@ def register():
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
-    # role = data.get('role', UserRole.TREKKER)  # Default role is TREKKER
+    full_name = data.get('full_name', '')
+    age = data.get('age', None)
+    phone = data.get('phone', '')
+    bio = data.get('bio', '')
+    emergency_contact = data.get('emergency_contact', '')
 
     if not username or not email or not password:
         return jsonify({"error": "Missing required fields"}), 400
@@ -26,7 +30,15 @@ def register():
     db.session.add(new_user)
     db.session.commit()
     
-    trekker_profile = Trekker(user_id=new_user.id, age=25, blacklisted=False)
+    trekker_profile = Trekker(
+        user_id=new_user.id,
+        full_name=full_name,
+        age=int(age) if age else None,
+        phone=phone,
+        bio=bio,
+        emergency_contact=emergency_contact,
+        blacklisted=False
+    )
     db.session.add(trekker_profile)
     db.session.commit()
 
@@ -39,7 +51,12 @@ def register_staff():
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
+    full_name = data.get('full_name', '')
+    phone = data.get('phone', '')
     contact_details = data.get('contact_details', '')
+    experience_years = data.get('experience_years', None)
+    specialization = data.get('specialization', '')
+    bio = data.get('bio', '')
 
     if not username or not email or not password:
         return jsonify({"error": "Missing required fields"}), 400
@@ -52,7 +69,16 @@ def register_staff():
     db.session.add(new_user)
     db.session.commit()
 
-    staff_profile = StaffProfile(user_id=new_user.id, contact_details=contact_details, status=ProfileStatus.PENDING)
+    staff_profile = StaffProfile(
+        user_id=new_user.id,
+        full_name=full_name,
+        phone=phone,
+        contact_details=contact_details,
+        experience_years=int(experience_years) if experience_years else None,
+        specialization=specialization,
+        bio=bio,
+        status=ProfileStatus.PENDING
+    )
     db.session.add(staff_profile)
     db.session.commit()
 

@@ -3,6 +3,10 @@ from flask import Blueprint, jsonify, request
 from models import Trek, StaffProfile, Booking, TrekStatus, Trekker, BookingStatus, User
 from extensions import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
+import os
+from celery.result import AsyncResult
+from flask import send_file
+from tasks import export_booking_history_csv
 
 trekker_bp = Blueprint('trekker', __name__)
 
@@ -166,3 +170,101 @@ def update_booking_status(booking_id):
 
     return jsonify({"message": "Booking status updated successfully", "booking": {"id": booking.id, "status": booking.status.value}}), 200
 
+
+@trekker_bp.route('/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    current_user_id = get_jwt_identity()
+    trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
+    if not trekker_profile:
+        return jsonify({"error": "Trekker profile not found"}), 404
+
+    user = User.query.get(int(current_user_id))
+    return jsonify({
+        "username": user.username if user else "",
+        "email": user.email if user else "",
+        "role": user.role.value if user else "Trekker",
+        "full_name": trekker_profile.full_name or "",
+        "age": trekker_profile.age,
+        "phone": trekker_profile.phone or "",
+        "bio": trekker_profile.bio or "",
+        "emergency_contact": trekker_profile.emergency_contact or "",
+        "blacklisted": trekker_profile.blacklisted,
+        "member_since": trekker_profile.created_at.strftime('%Y-%m-%d') if trekker_profile.created_at else ""
+    }), 200
+
+
+# @trekker_bp.route('/profile', methods=['PATCH'])
+# @jwt_required()
+# def update_profile():
+#     current_user_id = get_jwt_identity()
+#     trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
+#     if not trekker_profile:
+#         return jsonify({"error": "Trekker profile not found"}), 404
+
+#     data = request.get_json()
+#     if 'full_name' in data:
+#         trekker_profile.full_name = data['full_name']
+#     if 'age' in data:
+#         trekker_profile.age = int(data['age']) if data['age'] else None
+#     if 'phone' in data:
+#         trekker_profile.phone = data['phone']
+#     if 'bio' in data:
+#         trekker_profile.bio = data['bio']
+#     if 'emergency_contact' in data:
+#         trekker_profile.emergency_contact = data['emergency_contact']
+
+#     db.session.commit()
+#     return jsonify({"message": "Profile updated successfully"}), 200
+
+
+@trekker_bp.route('/export-history', methods=['POST'])
+@jwt_required()
+def trigger_export():
+    """Trigger an async CSV export job. Returns 202 Accepted immediately."""
+    current_user_id = get_jwt_identity()
+    trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
+
+    if not trekker_profile:
+        return jsonify({"error": "Trekker profile not found"}), 404
+
+    task = export_booking_history_csv.delay(current_user_id)
+
+    return jsonify({
+        "message": "Export started. You will be notified by email when it is ready.",
+        "task_id": task.id
+    }), 202
+
+
+@trekker_bp.route('/export-status/<string:task_id>', methods=['GET'])
+@jwt_required()
+def export_status(task_id):
+    """Poll the status of a running CSV export job."""
+    result = AsyncResult(task_id)
+
+    if result.state == 'SUCCESS':
+        return jsonify({"status": "SUCCESS", "download_url": f"/api/trekker/download-csv/{task_id}"}), 200
+    elif result.state == 'FAILURE':
+        return jsonify({"status": "FAILURE", "error": str(result.result)}), 200
+    else:
+        return jsonify({"status": result.state}), 200
+
+
+@trekker_bp.route('/download-csv/<string:task_id>', methods=['GET'])
+@jwt_required(locations=['headers', 'query_string'])
+def download_csv(task_id):
+    """Serve the generated CSV file for download."""
+    from flask import current_app
+
+    export_dir = os.path.join(current_app.root_path, 'exports')
+    file_path = os.path.join(export_dir, f'{task_id}.csv')
+
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found. The export may still be processing."}), 404
+
+    return send_file(
+        file_path,
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='booking_history.csv'
+    )

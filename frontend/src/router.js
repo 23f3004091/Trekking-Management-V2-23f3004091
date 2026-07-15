@@ -15,6 +15,7 @@ const AdminBookings  = () => import('@/views/AdminBookings.vue')
 
 const StaffDashboard   = () => import('@/views/StaffDashboard.vue')
 const StaffTrekDetail  = () => import('@/views/StaffTrekDetail.vue')
+const StaffProfileView = () => import('@/views/StaffProfile.vue')
 
 const TrekkerDashboard = () => import('@/views/TrekkerDashboard.vue')
 const TrekkerExplore   = () => import('@/views/TrekkerExplore.vue')
@@ -91,6 +92,12 @@ const routes = [
     path: '/staff/trek/:id',
     name: 'StaffTrekDetail',
     component: StaffTrekDetail,
+    meta: { requiresAuth: true, role: 'Trek Staff' }
+  },
+  {
+    path: '/staff/profile',
+    name: 'StaffProfile',
+    component: StaffProfileView,
     meta: { requiresAuth: true, role: 'Trek Staff' }
   },
 

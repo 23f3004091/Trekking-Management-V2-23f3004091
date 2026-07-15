@@ -10,7 +10,12 @@ const form = ref({
   email: '',
   password: '',
   confirmPassword: '',
-  contact_details: ''
+  full_name: '',
+  phone: '',
+  contact_details: '',
+  experience_years: '',
+  specialization: '',
+  bio: ''
 })
 
 const showPassword = ref(false)
@@ -44,7 +49,12 @@ const handleRegister = async () => {
       username: form.value.username,
       email: form.value.email,
       password: form.value.password,
-      contact_details: form.value.contact_details
+      full_name: form.value.full_name,
+      phone: form.value.phone,
+      contact_details: form.value.contact_details,
+      experience_years: form.value.experience_years || null,
+      specialization: form.value.specialization,
+      bio: form.value.bio
     })
 
     successMessage.value = 'Staff account created! Awaiting admin approval. Redirecting to login…'
@@ -127,18 +137,89 @@ const handleRegister = async () => {
             >
           </div>
 
-          <!-- Contact Details -->
+          <!-- Full Name -->
           <div class="col-12">
+            <label class="form-label" for="staff-fullname">
+              <i class="bi bi-person-badge me-1"></i>Full Name
+            </label>
+            <input
+              id="staff-fullname"
+              type="text"
+              class="form-control"
+              v-model="form.full_name"
+              placeholder="Your full name"
+            >
+          </div>
+
+          <!-- Contact Details -->
+          <div class="col-md-6">
             <label class="form-label" for="staff-contact">
-              <i class="bi bi-telephone me-1"></i>Contact Details
+              <i class="bi bi-card-list me-1"></i>Contact Details
             </label>
             <input
               id="staff-contact"
               type="text"
               class="form-control"
               v-model="form.contact_details"
-              placeholder="Phone number, address, etc. (optional)"
+              placeholder="Address, alternate contact… (optional)"
             >
+          </div>
+
+          <!-- Phone -->
+          <div class="col-md-6">
+            <label class="form-label" for="staff-phone">
+              <i class="bi bi-telephone me-1"></i>Phone
+            </label>
+            <input
+              id="staff-phone"
+              type="tel"
+              class="form-control"
+              v-model="form.phone"
+              placeholder="e.g. +91 98765 43210"
+            >
+          </div>
+
+          <!-- Experience years -->
+          <div class="col-md-6">
+            <label class="form-label" for="staff-exp">
+              <i class="bi bi-award me-1"></i>Experience (years)
+            </label>
+            <input
+              id="staff-exp"
+              type="number"
+              min="0" max="60"
+              class="form-control"
+              v-model="form.experience_years"
+              placeholder="Years of experience"
+            >
+          </div>
+
+          <!-- Specialization -->
+          <div class="col-md-6">
+            <label class="form-label" for="staff-spec">
+              <i class="bi bi-lightning me-1"></i>Specialization
+            </label>
+            <input
+              id="staff-spec"
+              type="text"
+              class="form-control"
+              v-model="form.specialization"
+              placeholder="e.g. High Altitude, Rock Climbing…"
+            >
+          </div>
+
+          <!-- Bio -->
+          <div class="col-12">
+            <label class="form-label" for="staff-bio">
+              <i class="bi bi-chat-square-text me-1"></i>Bio <span class="text-muted fw-normal">(optional)</span>
+            </label>
+            <textarea
+              id="staff-bio"
+              class="form-control"
+              rows="2"
+              v-model="form.bio"
+              placeholder="Tell us about your experience and trekking passion…"
+            ></textarea>
           </div>
 
           <!-- Password -->

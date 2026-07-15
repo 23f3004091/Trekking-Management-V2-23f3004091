@@ -4,7 +4,10 @@ from extensions import db, mail
 from flask import render_template, current_app
 from flask_mail import Message
 from datetime import timedelta, datetime
-from models import User, UserRole, Trek, Trekker
+from models import User, UserRole, Trek, Trekker, BookingStatus
+import csv
+import os
+
 
 @shared_task(bind=True)
 def send_trek_reminder(self, trek_id):
@@ -74,13 +77,6 @@ def send_daily_morning_reminders(self):
     return "Daily morning reminders have been sent."
 
 
-from datetime import datetime, timedelta
-from celery import shared_task
-from flask_mail import Message
-from flask import current_app, render_template
-from extensions import mail
-from models import User, UserRole, Trek, BookingStatus, db
-
 @shared_task(bind=True)
 def admin_monthly_report_mail(self, admin_email, admin_name, month_year, total_treks, total_participants, popular_treks):
     try:
@@ -122,7 +118,6 @@ def generate_monthly_trek_reports(self):
         
         month_year_str = first_day_last_month.strftime("%B %Y")
         
-        # 2. Query Treks conducted last month
         treks_last_month = Trek.query.filter(
             Trek.start_date >= start_dt,
             Trek.start_date <= end_dt
@@ -130,7 +125,6 @@ def generate_monthly_trek_reports(self):
         
         total_treks = len(treks_last_month)
         
-        # 3. Calculate Participants and Popular Treks using Bookings
         total_participants = 0
         trek_stats = []
         
@@ -146,14 +140,11 @@ def generate_monthly_trek_reports(self):
                 "count": participant_count
             })
             
-        # Sort by participant count descending and grab the top 5
         trek_stats.sort(key=lambda x: x['count'], reverse=True)
         popular_treks = trek_stats[:5]
 
-        # 4. Fetch all Admin users
         admins = User.query.filter(User.role == UserRole.ADMIN).all()
         
-        # 5. Queue an email for each admin
         for admin in admins:
             admin_monthly_report_mail.delay(
                 admin_email=admin.email,
@@ -167,5 +158,59 @@ def generate_monthly_trek_reports(self):
             
         return f"Monthly admin reports queued for {len(admins)} admins."
         
+    except Exception as e:
+        raise e
+
+@shared_task(bind=True)
+def export_booking_history_csv(self, user_id):
+    try:
+        from models import Booking, User
+        from extensions import db, mail
+        from flask import current_app
+        from flask_mail import Message
+
+        task_id = self.request.id
+
+        export_dir = os.path.join(current_app.root_path, 'exports')
+        os.makedirs(export_dir, exist_ok=True)
+        file_path = os.path.join(export_dir, f'{task_id}.csv')
+
+        user = User.query.get(user_id)
+        bookings = Booking.query.filter_by(user_id=user_id).all()
+
+        with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([
+                'User ID', 'Trek Name', 'Location',
+                'Booking Status', 'Start Date', 'End Date', 'Booking Date'
+            ])
+            for b in bookings:
+                writer.writerow([
+                    b.user_id,
+                    b.treks.trek_name if b.treks else 'Unknown Trek',
+                    b.treks.location if b.treks else '',
+                    b.status.value if b.status else 'Booked',
+                    b.treks.start_date.strftime('%Y-%m-%d') if (b.treks and b.treks.start_date) else '',
+                    b.treks.end_date.strftime('%Y-%m-%d') if (b.treks and b.treks.end_date) else '',
+                    b.booking_date.strftime('%Y-%m-%d %H:%M') if b.booking_date else '',
+                ])
+
+        # ── 4. Send e-mail alert ─────────────────────────────────────────────
+        if user and user.email:
+            msg = Message(
+                subject='✅ Your Booking History Export is Ready!',
+                sender=current_app.config.get('MAIL_DEFAULT_SENDER'),
+                recipients=[user.email]
+            )
+            msg.body = (
+                f"Hi {user.username},\n\n"
+                "Your trekking booking history CSV export has been completed.\n"
+                "You can download it from your dashboard.\n\n"
+                "— Trekking Management System"
+            )
+            mail.send(msg)
+
+        return {'status': 'SUCCESS', 'file_path': file_path}
+
     except Exception as e:
         raise e

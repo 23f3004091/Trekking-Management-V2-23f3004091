@@ -6,6 +6,58 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 staff_bp = Blueprint('staff', __name__)
 
+@staff_bp.route('/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    current_user_id = get_jwt_identity()
+    staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()
+    if not staff_profile:
+        return jsonify({"error": "Staff profile not found"}), 404
+
+    user = User.query.get(int(current_user_id))
+    return jsonify({
+        "username": user.username if user else "",
+        "email": user.email if user else "",
+        "role": user.role.value if user else "Trek Staff",
+        "full_name": staff_profile.full_name or "",
+        "phone": staff_profile.phone or "",
+        "contact_details": staff_profile.contact_details or "",
+        "experience_years": staff_profile.experience_years,
+        "specialization": staff_profile.specialization or "",
+        "bio": staff_profile.bio or "",
+        "status": staff_profile.status.value if staff_profile.status else "Pending",
+        "blacklisted": staff_profile.blacklisted,
+        "member_since": staff_profile.created_at.strftime('%Y-%m-%d') if staff_profile.created_at else ""
+    }), 200
+
+
+@staff_bp.route('/profile', methods=['PATCH'])
+@jwt_required()
+def update_profile():
+    current_user_id = get_jwt_identity()
+    staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()
+    if not staff_profile:
+        return jsonify({"error": "Staff profile not found"}), 404
+
+    data = request.get_json()
+    if 'full_name' in data:
+        staff_profile.full_name = data['full_name']
+    if 'phone' in data:
+        staff_profile.phone = data['phone']
+    if 'contact_details' in data:
+        staff_profile.contact_details = data['contact_details']
+    if 'experience_years' in data:
+        staff_profile.experience_years = int(data['experience_years']) if data['experience_years'] else None
+    if 'specialization' in data:
+        staff_profile.specialization = data['specialization']
+    if 'bio' in data:
+        staff_profile.bio = data['bio']
+
+    db.session.commit()
+    return jsonify({"message": "Profile updated successfully"}), 200
+
+
+
 @staff_bp.route('/summary', methods=['GET'])
 @jwt_required()
 def summary():

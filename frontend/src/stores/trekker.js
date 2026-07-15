@@ -6,17 +6,15 @@ export const useTrekkerStore = defineStore('trekker', {
     summary: { total_treks: 0, total_bookings: 0 },
     treks: [],
     history: [],
+    profile: null,
     isLoading: false,
     error: null,
   }),
 
   getters: {
-    // Example getter: Easily find a specific trek by ID without another API call
     getTrekById: (state) => (id) => {
       return state.treks.find(trek => trek.id === id)
     },
-    
-    // Example getter: Filter open treks only
     openTreks: (state) => {
       return state.treks.filter(trek => trek.status === 'OPEN')
     }
@@ -65,16 +63,42 @@ export const useTrekkerStore = defineStore('trekker', {
       }
     },
 
+    async fetchProfile() {
+      this.isLoading = true
+      this.error = null
+      try {
+        const response = await apiClient.get('/trekker/profile')
+        this.profile = response.data
+      } catch (error) {
+        this.error = error.response?.data?.error || 'Failed to fetch profile'
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async updateProfile(data) {
+      this.isLoading = true
+      this.error = null
+      try {
+        await apiClient.patch('/trekker/profile', data)
+        // Merge updates into local state
+        this.profile = { ...this.profile, ...data }
+        return { success: true, message: 'Profile updated successfully' }
+      } catch (error) {
+        this.error = error.response?.data?.error || 'Failed to update profile'
+        return { success: false, message: this.error }
+      } finally {
+        this.isLoading = false
+      }
+    },
+
     async bookTrek(trekId) {
       this.isLoading = true
       this.error = null
       try {
         const response = await apiClient.post(`/trekker/book-trek/${trekId}`)
-        
-        // Optimistically update history and summary without a full refetch
         this.history.push(response.data.booking)
         this.summary.total_bookings += 1
-        
         return { success: true, message: response.data.message }
       } catch (error) {
         this.error = error.response?.data?.error || 'Booking failed'
@@ -91,13 +115,10 @@ export const useTrekkerStore = defineStore('trekker', {
         const response = await apiClient.patch(`/trekker/update-booking-status/${bookingId}`, {
           status: newStatus
         })
-        
-        // Update the local state so the UI reacts immediately
         const index = this.history.findIndex(b => b.id === bookingId)
         if (index !== -1) {
           this.history[index].status = response.data.booking.status
         }
-        
         return { success: true, message: response.data.message }
       } catch (error) {
         this.error = error.response?.data?.error || 'Failed to update status'
@@ -107,4 +128,4 @@ export const useTrekkerStore = defineStore('trekker', {
       }
     }
   }
-})
+})
