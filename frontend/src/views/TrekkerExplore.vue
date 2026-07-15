@@ -12,7 +12,7 @@ const trekkerStore = useTrekkerStore()
 const showToast = inject('showToast')
 
 const searchQuery = ref('')
-const activeFilters = ref({ difficulty: 'All' })
+const activeFilters = ref({ difficulty: 'All', status: 'All' })
 const trekToBook = ref(null)
 
 onMounted(() => {
@@ -25,7 +25,8 @@ const filteredTreks = computed(() => {
     const matchQuery = (trek.trek_name?.toLowerCase().includes(q)) ||
                        (trek.location?.toLowerCase().includes(q))
     const matchDifficulty = activeFilters.value.difficulty === 'All' || trek.difficulty === activeFilters.value.difficulty
-    return matchQuery && matchDifficulty
+    const matchStatus = activeFilters.value.status === 'All' || trek.status === activeFilters.value.status
+    return matchQuery && matchDifficulty && matchStatus
   })
 })
 
@@ -70,7 +71,8 @@ const formatDT = (d) => {
     <SearchBar
       placeholder="Search treks by name or location..."
       :filters="[
-        { key: 'difficulty', label: 'Difficulty', options: ['All', 'Easy', 'Moderate', 'Hard'] }
+        { key: 'difficulty', label: 'Difficulty', options: ['All', 'Easy', 'Moderate', 'Hard'] },
+        { key: 'status', label: 'Status', options: ['All', 'Pending', 'Open', 'Ongoing'] }
       ]"
       @search="handleSearch"
       @filter="handleFilter"
@@ -97,22 +99,31 @@ const formatDT = (d) => {
         <div class="col-md-6 col-xl-4" v-for="trek in filteredTreks" :key="trek.id">
           <TrekCard :trek="trek">
             <template #actions>
+              <!-- Pending trek: coming soon, not bookable -->
+              <div v-if="trek.status === 'Pending' || trek.status === 'Approved'"
+                class="mt-3 p-2 text-center rounded"
+                style="background:#fef9c3; border:1px solid #fde047; font-size:0.82rem; color:#854d0e;">
+                <i class="bi bi-hourglass-split me-1"></i>
+                <strong>Coming Soon</strong> — Awaiting staff to start this trek
+              </div>
+              <!-- Bookable trek: Open or Ongoing with slots -->
               <button
-                v-if="trek.status === 'Open' && trek.available_slots > 0"
+                v-else-if="trek.bookable && trek.available_slots > 0"
                 class="btn btn-tma btn-sm w-100 mt-3"
                 @click="confirmBooking(trek)"
                 :id="`book-trek-${trek.id}`"
-                :disabled="filteredTreks.already_booked == true"
               >
                 <i class="bi bi-lightning-charge-fill me-2"></i>Book Now
                 <span class="ms-1 opacity-75">({{ trek.available_slots }} left)</span>
               </button>
+              <!-- Open/Ongoing but sold out -->
               <button
-                v-else-if="trek.status === 'Open' && trek.available_slots <= 0"
+                v-else-if="trek.bookable && trek.available_slots <= 0"
                 class="btn btn-secondary btn-sm w-100 mt-3" disabled
               >
                 <i class="bi bi-x-circle me-2"></i>Sold Out
               </button>
+              <!-- Fallback for any other visible status -->
               <button
                 v-else
                 class="btn btn-outline-secondary btn-sm w-100 mt-3" disabled

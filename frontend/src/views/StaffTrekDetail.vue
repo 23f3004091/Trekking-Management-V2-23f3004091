@@ -55,7 +55,9 @@ const getStatusClass = (s) => {
   if (sl === 'pending') return 'badge-pending'
   if (sl === 'approved') return 'badge-approved'
   if (sl === 'open') return 'badge-open'
+  if (sl === 'ongoing') return 'badge-ongoing'
   if (sl === 'closed') return 'badge-closed'
+  if (sl === 'cancelled') return 'badge-cancelled'
   if (sl === 'completed') return 'badge-completed'
   if (sl === 'booked') return 'badge-booked'
   if (sl === 'cancelled') return 'badge-cancelled'
@@ -186,27 +188,49 @@ const formatDate = (d) => {
             </div>
           </div>
 
-          <!-- Update Trek Form -->
+          <!-- Update Trek Status Form (Staff only: Ongoing / Completed) -->
           <div class="tma-card">
             <div class="card-header-custom">
-              <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Update Trek</h5>
+              <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Update Trek Status</h5>
             </div>
             <div class="card-body p-4">
+              <!-- Informational note for staff -->
+              <div class="alert alert-info py-2 px-3 mb-3" style="font-size:0.85rem; border-radius:8px;">
+                <i class="bi bi-info-circle me-1"></i>
+                As staff, you can mark this trek as <strong>Ongoing</strong> (started) or <strong>Completed</strong>.
+                Trek approval and cancellation are managed by the Admin.
+              </div>
               <form @submit.prevent="updateTrek" class="tma-form">
                 <div class="mb-3">
                   <label class="form-label">Trek Status</label>
-                  <select class="form-select" v-model="statusValue" :disabled="currentTrek.status === 'Completed'">
+                  <select class="form-select" v-model="statusValue"
+                    :disabled="currentTrek.status === 'Completed' || currentTrek.status === 'Cancelled' || currentTrek.status === 'Pending'">
                     <option :value="currentTrek.status" hidden>{{ currentTrek.status }}</option>
-                    <option value="Open" v-if="currentTrek.status !== 'Open'">Open</option>
-                    <option value="Closed" v-if="currentTrek.status !== 'Closed'">Closed</option>
-                    <option value="Completed" v-if="currentTrek.status !== 'Completed'">Completed</option>
+                    <!-- Mark as Ongoing: only from Approved or Open -->
+                    <option value="Ongoing"
+                      v-if="currentTrek.status === 'Approved' || currentTrek.status === 'Open'">
+                      🟠 Mark as Ongoing (Started)
+                    </option>
+                    <!-- Mark as Completed: only from Ongoing -->
+                    <option value="Completed"
+                      v-if="currentTrek.status === 'Ongoing' || currentTrek.status === 'Open'">
+                      ✅ Mark as Completed
+                    </option>
                   </select>
+                  <div v-if="currentTrek.status === 'Pending'" class="form-text text-warning mt-1">
+                    <i class="bi bi-hourglass-split me-1"></i>Trek is Pending admin approval.
+                  </div>
+                  <div v-if="currentTrek.status === 'Cancelled'" class="form-text text-danger mt-1">
+                    <i class="bi bi-x-circle me-1"></i>This trek has been cancelled by admin.
+                  </div>
                 </div>
                 <div class="mb-4">
                   <label class="form-label">Available Slots</label>
-                  <input type="number" class="form-control" v-model="slotsValue" min="0">
+                  <input type="number" class="form-control" v-model="slotsValue" min="0"
+                    :disabled="currentTrek.status === 'Completed' || currentTrek.status === 'Cancelled'">
                 </div>
-                <button type="submit" class="btn btn-tma w-100" :disabled="isUpdating || currentTrek.status === 'Completed'">
+                <button type="submit" class="btn btn-tma w-100"
+                  :disabled="isUpdating || currentTrek.status === 'Completed' || currentTrek.status === 'Cancelled' || currentTrek.status === 'Pending'">
                   <span v-if="isUpdating" class="spinner-border spinner-border-sm me-2"></span>
                   <i v-else class="bi bi-save me-2"></i>
                   {{ isUpdating ? 'Saving...' : 'Save Changes' }}

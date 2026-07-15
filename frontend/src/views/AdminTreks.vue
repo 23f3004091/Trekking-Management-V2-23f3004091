@@ -88,7 +88,9 @@ const getStatusClass = (s) => {
   if (sl === 'pending') return 'badge-pending'
   if (sl === 'approved') return 'badge-approved'
   if (sl === 'open') return 'badge-open'
+  if (sl === 'ongoing') return 'badge-ongoing'
   if (sl === 'closed') return 'badge-closed'
+  if (sl === 'cancelled') return 'badge-cancelled'
   if (sl === 'completed') return 'badge-completed'
   return ''
 }
@@ -183,7 +185,7 @@ const updateStatus = async (id, action) => {
       placeholder="Search treks by name or location..."
       :filters="[
         { key: 'difficulty', label: 'Difficulty', options: ['All', 'Easy', 'Moderate', 'Hard'] },
-        { key: 'status', label: 'Status', options: ['All', 'Pending', 'Approved', 'Open', 'Closed', 'Completed'] }
+        { key: 'status', label: 'Status', options: ['All', 'Pending', 'Approved', 'Open', 'Ongoing', 'Closed', 'Cancelled', 'Completed'] }
       ]"
       @search="handleSearch"
       @filter="handleFilter"
@@ -254,28 +256,27 @@ const updateStatus = async (id, action) => {
                 </td>
                 <td class="text-end">
                   <div class="d-flex justify-content-end gap-1 flex-wrap">
-                    <!-- Status Dropdown -->
+                    <!-- Admin Status Dropdown: Approve or Cancel only -->
                     <div class="dropdown">
-
-                      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" :disabled="trek.status == 'Completed'">
-                        <i class="bi bi-gear-fill me-1"></i> {{ trek.status == 'Completed' ? 'Completed' : 'Status' }} 
+                      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                        :disabled="trek.status === 'Completed' || trek.status === 'Cancelled'">
+                        <i class="bi bi-gear-fill me-1"></i>
+                        {{ trek.status === 'Completed' ? 'Completed' : trek.status === 'Cancelled' ? 'Cancelled' : 'Status' }}
                       </button>
-                      <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 0.85rem; min-width: 150px;">
-                        <li v-if="trek.status != 'Approved'">
+                      <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 0.85rem; min-width: 160px;">
+                        <!-- Approve: only when Pending -->
+                        <li v-if="trek.status === 'Pending'">
                           <a class="dropdown-item py-2" href="#" @click.prevent="updateStatus(trek.id, 'approve')">
-                          <i class="bi bi-check-circle me-2 text-info"></i>Approve
-                        </a>
+                            <i class="bi bi-check-circle me-2 text-info"></i>Approve
+                          </a>
                         </li>
-                        <li v-if="trek.status != 'Open'"><a class="dropdown-item py-2" href="#" @click.prevent="updateStatus(trek.id, 'open')">
-                          <i class="bi bi-door-open me-2 text-success"></i>Open
-                        </a></li>
-                        <li v-if="trek.status != 'Closed'"><a class="dropdown-item py-2" href="#" @click.prevent="updateStatus(trek.id, 'close')">
-                          <i class="bi bi-x-circle me-2 text-danger"></i>Close
-                        </a></li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li><a class="dropdown-item py-2 text-purple" href="#" @click.prevent="updateStatus(trek.id, 'complete')" style="color:#7c3aed;">
-                          <i class="bi bi-trophy-fill me-2"></i>Complete
-                        </a></li>
+                        <li v-if="trek.status === 'Pending'"><hr class="dropdown-divider my-1"></li>
+                        <!-- Cancel: available unless already Completed -->
+                        <li v-if="trek.status !== 'Completed' && trek.status !== 'Cancelled'">
+                          <a class="dropdown-item py-2 text-danger" href="#" @click.prevent="updateStatus(trek.id, 'cancel')">
+                            <i class="bi bi-x-circle me-2"></i>Cancel Trek
+                          </a>
+                        </li>
                       </ul>
                     </div>
                     <button class="btn btn-sm btn-outline-primary" @click="openEditModal(trek)" title="Edit" :disabled="trek.status == 'Completed'">

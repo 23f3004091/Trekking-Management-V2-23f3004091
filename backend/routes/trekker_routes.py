@@ -42,22 +42,27 @@ def get_treks():
     if not trekker_profile:
         return jsonify({"error": "Trekker profile not found"}), 404
 
-    treks = Trek.query.all()
+    # Trekkers can see: Pending (view-only), Approved/Open/Ongoing (bookable)
+    # Cancelled and Completed are hidden from trekkers
+    VISIBLE_STATUSES = [TrekStatus.PENDING, TrekStatus.APPROVED, TrekStatus.OPEN, TrekStatus.ONGOING]
+    BOOKABLE_STATUSES = [TrekStatus.OPEN, TrekStatus.ONGOING]
+
+    treks = Trek.query.filter(Trek.status.in_(VISIBLE_STATUSES)).all()
     trek_list = []
     for trek in treks:
-        if trek.status in [TrekStatus.APPROVED, TrekStatus.OPEN]:
-            duration = (trek.end_date - trek.start_date).days if (trek.end_date and trek.start_date) else 1
-            trek_list.append({
-                "id": trek.id,
-                "trek_name": trek.trek_name,
-                "location": trek.location,
-                "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
-                "available_slots": trek.available_slots,
-                "start_date": fmt_dt(trek.start_date),
-                "end_date": fmt_dt(trek.end_date),
-                "duration_days": duration if duration > 0 else 1,
-                "status": trek.status.value if trek.status else "Open",
-            })
+        duration = (trek.end_date - trek.start_date).days if (trek.end_date and trek.start_date) else 1
+        trek_list.append({
+            "id": trek.id,
+            "trek_name": trek.trek_name,
+            "location": trek.location,
+            "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
+            "available_slots": trek.available_slots,
+            "start_date": fmt_dt(trek.start_date),
+            "end_date": fmt_dt(trek.end_date),
+            "duration_days": duration if duration > 0 else 1,
+            "status": trek.status.value if trek.status else "Pending",
+            "bookable": trek.status in BOOKABLE_STATUSES,
+        })
     
     return jsonify({"treks": trek_list}), 200
     
@@ -96,8 +101,8 @@ def book_trek(trek_id):
     if not trekker_profile or not trek:
         return jsonify({"error": "Trekker profile or trek not found"}), 404
     
-    if trek.status != TrekStatus.OPEN:
-        return jsonify({"error": "Trek is not open"}), 400
+    if trek.status not in [TrekStatus.OPEN, TrekStatus.ONGOING]:
+        return jsonify({"error": "Trek is not open for bookings. It must be Open or Ongoing."}), 400
     
     if trek.available_slots == 0:
         return jsonify({"error": "No slots available"}), 400

@@ -162,7 +162,7 @@ def get_users_for_trek(trek_id):
     return jsonify({"users": user_data}), 200
 
 
-# This route to updated 
+# This route handles staff-only trek status transitions: Ongoing and Completed
 @staff_bp.route('/update-trek/<int:trek_id>', methods=['PATCH'])
 @jwt_required()
 def update_trek_status(trek_id):
@@ -172,25 +172,53 @@ def update_trek_status(trek_id):
     if not staff_profile:
         return jsonify({"error": "Staff profile not found"}), 404
 
-    trek = Trek.query.filter_by(id=trek_id).first()
+    trek = Trek.query.filter_by(id=trek_id, staff_id=staff_profile.user_id).first()
 
     if not trek:
-        return jsonify({"error": "Trek not found"}), 404
+        return jsonify({"error": "Trek not found or not assigned to you"}), 404
 
     data = request.get_json()
     new_slots = data.get('available_slots')
     new_status = data.get('status')
 
-    if new_status and new_status not in [status.value for status in TrekStatus]:
-        return jsonify({"error": "Invalid status value"}), 400
+    # Staff-allowed statuses only
+    STAFF_ALLOWED_STATUSES = ['Ongoing', 'Completed']
+
+    if new_status:
+        if new_status not in STAFF_ALLOWED_STATUSES:
+            return jsonify({
+                "error": f"Staff can only mark treks as 'Ongoing' or 'Completed'. "
+                         f"Status '{new_status}' is managed by Admin."
+            }), 400
+
+        # Enforce valid transitions
+        if new_status == 'Ongoing':
+            if trek.status not in [TrekStatus.APPROVED, TrekStatus.OPEN]:
+                return jsonify({
+                    "error": f"Trek can only be marked Ongoing when it is Approved or Open (current: {trek.status.value})"
+                }), 400
+        elif new_status == 'Completed':
+            if trek.status not in [TrekStatus.ONGOING, TrekStatus.OPEN]:
+                return jsonify({
+                    "error": f"Trek can only be marked Completed when it is Ongoing or Open (current: {trek.status.value})"
+                }), 400
+
+        trek.status = TrekStatus(new_status)
 
     if new_slots is not None:
         trek.available_slots = int(new_slots)
-    if new_status:
-        trek.status = TrekStatus(new_status)
+
     db.session.commit()
 
-    return jsonify({"message": "Trek status updated successfully", "trek": {"id": trek.id, "status": trek.status.value, "available_slots": trek.available_slots}}), 200
+    return jsonify({
+        "message": "Trek updated successfully",
+        "trek": {
+            "id": trek.id,
+            "status": trek.status.value,
+            "available_slots": trek.available_slots
+        }
+    }), 200
+
 
 
 @staff_bp.route('/update-booking-status/<int:booking_id>', methods=['PATCH'])

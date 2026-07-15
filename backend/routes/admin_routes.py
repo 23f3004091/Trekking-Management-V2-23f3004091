@@ -107,18 +107,19 @@ def manage_trek(trek_id):
         return jsonify({"error": "Trek not found"}), 404
     
     if action == 'approve':
+        if trek.status not in [TrekStatus.PENDING]:
+            return jsonify({"error": "Trek can only be approved when it is Pending"}), 400
         trek.status = TrekStatus.APPROVED
-    elif action == 'open':
-        trek.status = TrekStatus.OPEN
-    elif action == 'close':
-        trek.status = TrekStatus.CLOSED
-    elif action == 'complete':
-        trek.status = TrekStatus.COMPLETED
+    elif action == 'cancel':
+        if trek.status == TrekStatus.COMPLETED:
+            return jsonify({"error": "Cannot cancel a trek that is already Completed"}), 400
+        trek.status = TrekStatus.CANCELLED
     else:
-        return jsonify({"error": "Invalid action"}), 400
+        return jsonify({"error": "Invalid action. Admin can only 'approve' or 'cancel' a trek."}), 400
     
     db.session.commit()
     return jsonify({"message": f"Trek {action}d successfully", "trek": {"id": trek.id, "status": trek.status.value}})
+
 
 @admin_bp.route('/create-trek', methods=['POST'])
 @jwt_required()

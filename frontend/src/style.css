@@ -722,6 +722,8 @@ body {
 .badge-pending   { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
 .badge-closed    { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
 .badge-completed { background: #EEF2FF; color: #4338CA; border: 1px solid #C7D2FE; }
+.badge-ongoing   { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
+.badge-cancelled { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
 
 /* ==========================================================================
    SearchBar (.tma-search)

@@ -18,7 +18,9 @@ class TrekStatus(enum.Enum):
     PENDING = "Pending"
     APPROVED = "Approved"
     OPEN = "Open"
+    ONGOING = "Ongoing"
     CLOSED = "Closed"
+    CANCELLED = "Cancelled"
     COMPLETED = "Completed"
 
 class BookingStatus(enum.Enum):
