@@ -34,6 +34,8 @@ const handleLogin = async () => {
       }
     } else {
       errorMessage.value = res.message || 'Login failed. Please check your credentials.'
+      
+      // console.log("")
     }
   } catch (error) {
     errorMessage.value = 'An unexpected error occurred. Please try again.'

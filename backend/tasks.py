@@ -35,33 +35,31 @@ def user_daily_reminder_mail(self, user_email, user_name, trek_name, start_date,
     
 @shared_task(bind=True)
 def send_daily_morning_reminders(self):
-    target_date = datetime.utcnow().date() + timedelta(days=3)
-    # Only send reminders for active upcoming treks
-    upcoming_treks = Trek.query.filter(
-        Trek.start_date >= target_date,
-        Trek.status.in_([TrekStatus.APPROVED, TrekStatus.OPEN, TrekStatus.ONGOING])
-    ).all()
-    trekker_profiles = Trekker.query.all()
+    target_date = datetime.utcnow().date() + timedelta(days=1)
+    upcomming_treks = Trek.query.filter(Trek.start_date >= target_date).all()
+    participants = Trekker.query.all()
     
-    for trek in upcoming_treks:
-        for trekker in trekker_profiles:            
-            staff_name = "TBA"
-            staff_phone = "TBA"
-            if trek.staff:
-                staff_profile = trek.staff.staff_profile
-                staff_name = staff_profile.full_name if staff_profile and staff_profile.full_name else trek.staff.username
-                staff_phone = staff_profile.phone if staff_profile and staff_profile.phone else "TBA"
-
-            print(f"Sending reminder to {trekker.user.email}")
+    for trek in upcomming_treks:
+        for participant in participants:
+            print(participant.user)
             user_daily_reminder_mail.delay(
-                user_email=trekker.user.email,
-                user_name=trekker.full_name,
+                user_email=participant.user.email,
+                user_name=participant.user.username,
                 trek_name=trek.trek_name,
                 start_date=trek.start_date.strftime("%B %d, %Y"),
                 meeting_location=trek.location,
-                trek_leader_name=staff_name,
-                trek_leader_phone=staff_phone
+                trek_leader_name=trek.staff.username,
+                trek_leader_phone=trek.staff.staff_profile.contact_details
             )
+            
+            print(f"Sending daily morning reminders for {participant.user.username}")
+            print(f"Trek Name: {trek.trek_name}")
+            print(f"Start Date: {trek.start_date}")
+            print(f"Meeting Time: {trek.start_date}")
+            print(f"Meeting Location: {trek.location}")
+            print(f"Trek Leader Name: {trek.staff.username}")
+            print(f"Trek Leader Phone: {trek.staff.staff_profile.contact_details}")
+            # print(f"Instructions: {instructions_html}")
     
     return "Daily morning reminders have been sent."
 

@@ -155,6 +155,11 @@ const formatDate = (d) => {
                   <span class="text-muted small">Location</span>
                   <span class="ms-auto fw-semibold small">{{ currentTrek.location }}</span>
                 </li>
+                <li class="d-flex align-items-start gap-2 py-2" style="border-bottom: 1px solid #f0f4f2;">
+                  <i class="bi bi-card-text text-primary mt-1"></i>
+                  <span class="text-muted small">Description</span>
+                  <span class="ms-auto fw-semibold small text-end" style="max-width: 60%;">{{ currentTrek.description || 'N/A' }}</span>
+                </li>
                 <li class="d-flex align-items-center gap-2 py-2" style="border-bottom: 1px solid #f0f4f2;">
                   <i class="bi bi-bar-chart-fill text-warning"></i>
                   <span class="text-muted small">Difficulty</span>

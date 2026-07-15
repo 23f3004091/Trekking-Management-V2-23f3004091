@@ -98,10 +98,6 @@ def update_profile():
 @jwt_required()
 def get_treks():
     current_user_id = get_jwt_identity()
-    cache_key = f"staff:treks{current_user_id}"
-    cache_response = cache.get(cache_key)
-    if cache_response:
-        return cache_response
     staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()
 
     if not staff_profile:
@@ -112,6 +108,7 @@ def get_treks():
         "id": trek.id,
         "trek_name": trek.trek_name,
         "location": trek.location,
+        "description": trek.description,
         "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
         "available_slots": trek.available_slots,
         "start_date": fmt_dt(trek.start_date),
@@ -120,7 +117,7 @@ def get_treks():
         "status": trek.status.value if trek.status else "Pending"
     } for trek in treks]
     response = jsonify({"treks": trek_list})
-    cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
+    # cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
     return response, 200
 
 
@@ -146,6 +143,7 @@ def get_bookings(trek_id):
         "trek_id": booking.trek_id,
         "trek_name": trek.trek_name,
         "location": trek.location,
+        "description": trek.description,
         "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
         "start_date": fmt_dt(trek.start_date),
         "end_date": fmt_dt(trek.end_date),
@@ -200,27 +198,27 @@ def update_trek_status(trek_id):
     new_slots = data.get('available_slots')
     new_status = data.get('status')
 
-    # Staff-allowed statuses only
-    STAFF_ALLOWED_STATUSES = ['Ongoing', 'Completed']
+    # # Staff-allowed statuses only
+    # STAFF_ALLOWED_STATUSES = ['Ongoing', 'Completed']
 
     if new_status:
-        if new_status not in STAFF_ALLOWED_STATUSES:
-            return jsonify({
-                "error": f"Staff can only mark treks as 'Ongoing' or 'Completed'. "
-                         f"Status '{new_status}' is managed by Admin."
-            }), 400
+    #     if new_status not in STAFF_ALLOWED_STATUSES:
+    #         return jsonify({
+    #             "error": f"Staff can only mark treks as 'Ongoing' or 'Completed'. "
+    #                      f"Status '{new_status}' is managed by Admin."
+    #         }), 400
 
-        # Enforce valid transitions
-        if new_status == 'Ongoing':
-            if trek.status not in [TrekStatus.APPROVED, TrekStatus.OPEN]:
-                return jsonify({
-                    "error": f"Trek can only be marked Ongoing when it is Approved or Open (current: {trek.status.value})"
-                }), 400
-        elif new_status == 'Completed':
-            if trek.status not in [TrekStatus.ONGOING, TrekStatus.OPEN]:
-                return jsonify({
-                    "error": f"Trek can only be marked Completed when it is Ongoing or Open (current: {trek.status.value})"
-                }), 400
+    #     # Enforce valid transitions
+    #     if new_status == 'Ongoing':
+    #         if trek.status not in [TrekStatus.APPROVED, TrekStatus.OPEN]:
+    #             return jsonify({
+    #                 "error": f"Trek can only be marked Ongoing when it is Approved or Open (current: {trek.status.value})"
+    #             }), 400
+    #     elif new_status == 'Completed':
+    #         if trek.status not in [TrekStatus.ONGOING, TrekStatus.OPEN]:
+    #             return jsonify({
+    #                 "error": f"Trek can only be marked Completed when it is Ongoing or Open (current: {trek.status.value})"
+    #             }), 400
 
         trek.status = TrekStatus(new_status)
 

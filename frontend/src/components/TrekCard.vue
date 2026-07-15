@@ -42,6 +42,9 @@ const formatDate = (d) => {
         <i class="bi bi-geo-alt-fill"></i>
         {{ trek.location }}
       </div>
+      <div v-if="trek.description" class="mt-2 text-muted small" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+        {{ trek.description }}
+      </div>
     </div>
     <div class="trek-card-body">
       <div class="trek-meta">

@@ -27,7 +27,8 @@ const formData = ref({
   available_slots: 10,
   start_date: '',
   end_date: '',
-  staff_name: ''
+  staff_name: '',
+  description: ''
 })
 
 onMounted(() => {
@@ -100,7 +101,7 @@ const openCreateModal = () => {
   currentTrekId.value = null
   formData.value = {
     trek_name: '', location: '', difficulty: 'Easy',
-    available_slots: 10, start_date: '', end_date: '', staff_name: ''
+    available_slots: 10, start_date: '', end_date: '', staff_name: '', description : ''
   }
   showTrekModal.value = true
 }
@@ -115,7 +116,8 @@ const openEditModal = (trek) => {
     available_slots: trek.available_slots || 0,
     start_date: toLocalInputValue(trek.start_date),
     end_date: toLocalInputValue(trek.end_date),
-    staff_name: trek.staff_name || ''
+    staff_name: trek.staff_name || '',
+    description: trek.description || ''
   }
   showTrekModal.value = true
 }
@@ -126,13 +128,20 @@ const handleSaveTrek = async () => {
     if (isEditing.value) {
       if (formData.value.start_date < formData.value.end_date) {
         await adminStore.updateTrek(currentTrekId.value, formData.value)
+      showToast(`Trek ${isEditing.value ? 'updated' : 'created'} successfully`, 'success')
+
       } else {
         showToast('Start date must be before end date', 'error')
       }
     } else {
-      await adminStore.createTrek(formData.value)
+      if (formData.value.start_date < formData.value.end_date) {
+        await adminStore.createTrek(formData.value)
+      showToast(`Trek ${isEditing.value ? 'updated' : 'created'} successfully`, 'success')
+
+      } else {
+        showToast('Start date must be before end date', 'error')
+      }
     }
-    showToast(`Trek ${isEditing.value ? 'updated' : 'created'} successfully`, 'success')
     showTrekModal.value = false
     await adminStore.fetchTreks()
   } catch (err) {
@@ -323,6 +332,10 @@ const updateStatus = async (id, action) => {
                 <div class="col-md-6">
                   <label class="form-label">Location *</label>
                   <input type="text" class="form-control" v-model="formData.location" required placeholder="e.g. Himachal Pradesh">
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label">Description *</label>
+                  <textarea class="form-control" v-model="formData.description" required placeholder="Describe the trek..." rows="3"></textarea>
                 </div>
                 <div class="col-md-4">
                   <label class="form-label">Difficulty *</label>

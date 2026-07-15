@@ -45,46 +45,6 @@ def register():
     return jsonify({"message": "User registered successfully"}), 201
 
 
-@auth_bp.route('/register-staff', methods=['POST'])
-def register_staff():
-    data = request.get_json()
-    username = data.get('username')
-    email = data.get('email')
-    password = data.get('password')
-    full_name = data.get('full_name', '')
-    phone = data.get('phone', '')
-    contact_details = data.get('contact_details', '')
-    experience_years = data.get('experience_years', None)
-    specialization = data.get('specialization', '')
-    bio = data.get('bio', '')
-
-    if not username or not email or not password:
-        return jsonify({"error": "Missing required fields"}), 400
-
-    if User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first():
-        return jsonify({"error": "User already exists"}), 400
-
-    new_user = User(username=username, email=email, role=UserRole.TREK_STAFF)
-    new_user.set_password(password)
-    db.session.add(new_user)
-    db.session.commit()
-
-    staff_profile = StaffProfile(
-        user_id=new_user.id,
-        full_name=full_name,
-        phone=phone,
-        contact_details=contact_details,
-        experience_years=int(experience_years) if experience_years else None,
-        specialization=specialization,
-        bio=bio,
-        status=ProfileStatus.PENDING
-    )
-    db.session.add(staff_profile)
-    db.session.commit()
-
-    return jsonify({"message": "Staff registered successfully"}), 201
-
-
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()

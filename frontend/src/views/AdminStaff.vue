@@ -69,7 +69,7 @@ const openAddStaffModal = () => {
 const handleAddStaff = async () => {
   isSubmitting.value = true
   try {
-    await apiClient.post('/auth/register-staff', formData.value)
+    await apiClient.post('/admin/register-staff', formData.value)
     showToast('Staff registered successfully', 'success')
     showStaffModal.value = false
     resetForm()

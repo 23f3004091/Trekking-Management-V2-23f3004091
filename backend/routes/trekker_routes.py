@@ -51,12 +51,6 @@ def get_treks():
     if not trekker_profile:
         return jsonify({"error": "Trekker profile not found"}), 404
 
-    # All trekkers see the same available treks, so a global cache key is efficient here
-    cache_key = "trekker:treks"
-    cache_response = cache.get(cache_key)
-    if cache_response:
-        return cache_response
-
     # Trekkers can see: Pending (view-only), Approved/Open/Ongoing (bookable)
     # Cancelled and Completed are hidden from trekkers
     VISIBLE_STATUSES = [TrekStatus.PENDING, TrekStatus.APPROVED, TrekStatus.OPEN, TrekStatus.ONGOING]
@@ -70,6 +64,7 @@ def get_treks():
             "id": trek.id,
             "trek_name": trek.trek_name,
             "location": trek.location,
+            "description": trek.description,
             "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
             "available_slots": trek.available_slots,
             "start_date": fmt_dt(trek.start_date),
@@ -80,7 +75,6 @@ def get_treks():
         })
     
     response = jsonify({"treks": trek_list})
-    cache.set(cache_key, response, timeout=60)
     return response, 200
     
 
@@ -88,11 +82,11 @@ def get_treks():
 @jwt_required()
 def get_history():
     current_user_id = get_jwt_identity()
-    cache_key = f"trekker:history:{current_user_id}"
+    # cache_key = f"trekker:history:{current_user_id}"
     
-    cache_response = cache.get(cache_key)
-    if cache_response:
-        return cache_response
+    # cache_response = cache.get(cache_key)
+    # if cache_response:
+    #     return cache_response
 
     trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
 
@@ -106,6 +100,7 @@ def get_history():
         "trek_id": b.trek_id,
         "trek_name": b.treks.trek_name if b.treks else "Unknown Trek",
         "location": b.treks.location if b.treks else "",
+        "description": b.treks.description if b.treks else "",
         "difficulty": b.treks.difficulty.value if (b.treks and b.treks.difficulty) else "Easy",
         "start_date": fmt_dt(b.treks.start_date) if (b.treks and b.treks.start_date) else None,
         "end_date": fmt_dt(b.treks.end_date) if (b.treks and b.treks.end_date) else None,
@@ -114,8 +109,9 @@ def get_history():
     } for b in history]
 
     response = jsonify({"history": history_list})
-    cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
+    # cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
     return response, 200
+
 
 @trekker_bp.route('/book-trek/<int:trek_id>', methods=['POST'])
 @jwt_required()
@@ -123,6 +119,7 @@ def book_trek(trek_id):
     current_user_id = get_jwt_identity()
     trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
     trek = Trek.query.filter_by(id=trek_id).first()
+    
     if not trekker_profile or not trek:
         return jsonify({"error": "Trekker profile or trek not found"}), 404
     
@@ -132,9 +129,11 @@ def book_trek(trek_id):
     if trek.available_slots == 0:
         return jsonify({"error": "No slots available"}), 400
     
-    is_booked = Booking.query.filter_by(user_id=current_user_id, trek_id=trek_id).first()
+    is_booked = Booking.query.filter_by(user_id=current_user_id, trek_id=trek_id).order_by(Booking.id.desc()).first()
+    
     already_booked = False
-    if is_booked:
+    
+    if is_booked and is_booked.status != BookingStatus.CANCELLED: 
         already_booked = True
         return jsonify({"error": "Already booked this trek"}), 400
     
@@ -148,21 +147,25 @@ def book_trek(trek_id):
     cache.delete(f"trekker:history:{current_user_id}")
     cache.delete("trekker:treks")
 
-    return jsonify({"message": "Booking created successfully", "booking": {
-        "id": booking.id,
-        "user_id": booking.user_id,
-        "trek_id": booking.trek_id,
-        "trek_name": trek.trek_name,
-        "location": trek.location,
-        "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
-        "start_date": fmt_dt(trek.start_date),
-        "end_date": fmt_dt(trek.end_date),
-        "booking_date": fmt_dt(booking.booking_date),
-        "already_booked": already_booked,
-        "status": booking.status.value if booking.status else "Booked"
-    }}), 201
-
-
+    return jsonify({
+        "message": "Booking created successfully", 
+        "booking": {
+            "id": booking.id,
+            "user_id": booking.user_id,
+            "trek_id": booking.trek_id,
+            "trek_name": trek.trek_name,
+            "location": trek.location,
+            "description": trek.description,
+            "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
+            "start_date": fmt_dt(trek.start_date),
+            "end_date": fmt_dt(trek.end_date),
+            "booking_date": fmt_dt(booking.booking_date),
+            "already_booked": already_booked,
+            "status": booking.status.value if booking.status else "Booked"
+        }
+    }), 201
+    
+    
 @trekker_bp.route('/update-booking-status/<int:booking_id>', methods=['PATCH'])
 @jwt_required()
 def update_booking_status(booking_id):
@@ -174,8 +177,9 @@ def update_booking_status(booking_id):
 
     booking = Booking.query.filter_by(id=booking_id).first()
 
-    if not booking:
+    if not booking and booking.status != BookingStatus.CANCELLED:
         return jsonify({"error": "Booking not found"}), 404
+
 
     data = request.get_json()
     new_status = data.get('status')
@@ -183,14 +187,34 @@ def update_booking_status(booking_id):
     if new_status not in [status.value for status in BookingStatus]:
         return jsonify({"error": "Invalid status value"}), 400
     
+    trek = Trek.query.get(booking.trek_id)
+    
+    if not trek:
+        return jsonify({"error": "Associated trek not found"}), 404
+
+    if new_status == BookingStatus.CANCELLED.value and booking.status != BookingStatus.CANCELLED:
+        trek.available_slots += 1
+        
+    elif new_status == BookingStatus.BOOKED.value and booking.status == BookingStatus.CANCELLED:
+        if trek.available_slots > 0:
+            trek.available_slots -= 1
+        else:
+            return jsonify({"error": "Cannot re-book, no available slots left"}), 400
+        
     booking.status = BookingStatus(new_status)
     db.session.commit()
 
     cache.delete(f"trekker:history:{current_user_id}")
     cache.delete("trekker:treks")
 
-    return jsonify({"message": "Booking status updated successfully", "booking": {"id": booking.id, "status": booking.status.value}}), 200
-
+    return jsonify({
+        "message": "Booking status updated successfully", 
+        "booking": {
+            "id": booking.id, 
+            "status": booking.status.value,
+            "trek_slots_remaining": trek.available_slots
+        }
+    }), 200
 
 @trekker_bp.route('/profile', methods=['GET'])
 @jwt_required()

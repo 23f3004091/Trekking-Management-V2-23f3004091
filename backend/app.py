@@ -26,8 +26,7 @@ app.config['JWT_SECRET_KEY'] = "23f3004091@ds.study.iitm.ac.in1234"
 app.config['beat_schedule'] = {
     'daily-morning-reminders': {
         'task': 'tasks.send_daily_morning_reminders',
-        # 'schedule': 10.0,
-        # 'schedule': crontab(minute="*"), 
+        # 'schedule': crontab(minute="*"),
         'schedule': crontab(minute=0, hour=8), 
     },
     'monthly-trek-reports': {
@@ -71,6 +70,12 @@ def index():
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
+        admin = User.query.filter_by(username='admin').first()
+        if not admin:
+            admin = User(username='admin', email='admin@gmail.com', role=UserRole.ADMIN)
+            admin.set_password('admin') 
+            db.session.add(admin)
+            db.session.commit()
         # seed_database()
         
     app.run(debug=True, port=8000)

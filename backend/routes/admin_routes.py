@@ -1,6 +1,6 @@
 
 from flask import Blueprint, jsonify, request
-from models import Trek, StaffProfile, Booking, TrekStatus, Trekker, BookingStatus, User, ProfileStatus, DifficultyLevel
+from models import Trek, StaffProfile, Booking, TrekStatus, Trekker, BookingStatus, User, ProfileStatus, DifficultyLevel, UserRole
 from flask_jwt_extended import jwt_required
 from extensions import db, cache
 from sqlalchemy.orm import joinedload
@@ -94,6 +94,7 @@ def get_treks():
         "id": trek.id,
         "trek_name": trek.trek_name,
         "location": trek.location,
+        "description": trek.description,
         "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
         "available_slots": trek.available_slots,
         "start_date": fmt_dt(trek.start_date),
@@ -170,6 +171,7 @@ def create_trek():
     data = request.get_json()
     trek_name = data.get('trek_name')
     location = data.get('location')
+    description = data.get('description', '')
     diff_str = data.get('difficulty', 'Easy')
     available_slots = int(data.get('available_slots', 10))
     start_date_str = data.get('start_date')
@@ -190,7 +192,7 @@ def create_trek():
 
     diff_enum = DifficultyLevel(diff_str) if diff_str in [d.value for d in DifficultyLevel] else DifficultyLevel.EASY
 
-    new_trek = Trek(trek_name=trek_name, location=location, difficulty=diff_enum, available_slots=available_slots, start_date=start_date, end_date=end_date, staff_id=staff.id, status=TrekStatus.PENDING)
+    new_trek = Trek(trek_name=trek_name, location=location, description=description, difficulty=diff_enum, available_slots=available_slots, start_date=start_date, end_date=end_date, staff_id=staff.id, status=TrekStatus.PENDING)
 
     db.session.add(new_trek)
     db.session.commit()
@@ -199,6 +201,7 @@ def create_trek():
         "id": new_trek.id,
         "trek_name": new_trek.trek_name,
         "location": new_trek.location,
+        "description": new_trek.description,
         "difficulty": new_trek.difficulty.value if new_trek.difficulty else "Easy",
         "available_slots": new_trek.available_slots,
         "start_date": fmt_dt(new_trek.start_date),
@@ -218,6 +221,7 @@ def update_trek(trek_id):
     data = request.get_json()
     trek.trek_name = data.get('trek_name', trek.trek_name)
     trek.location = data.get('location', trek.location)
+    trek.description = data.get('description', trek.description)
     
     diff_str = data.get('difficulty')
     if diff_str in [d.value for d in DifficultyLevel]:
@@ -252,6 +256,7 @@ def update_trek(trek_id):
         "id": trek.id,
         "trek_name": trek.trek_name,
         "location": trek.location,
+        "description": trek.description,
         "difficulty": trek.difficulty.value if trek.difficulty else "Easy",
         "available_slots": trek.available_slots,
         "start_date": fmt_dt(trek.start_date),
@@ -294,6 +299,47 @@ def manage_booking(booking_id):
     cache.delete(CACHE_KEY_BOOKINGS)
     return jsonify({"message": f"Booking {action}d successfully", "booking": {"id": booking.id, "status": booking.status.value}})
 
+@admin_bp.route('/register-staff', methods=['POST'])
+def register_staff():
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    full_name = data.get('full_name', '')
+    phone = data.get('phone', '')
+    contact_details = data.get('contact_details', '')
+    experience_years = data.get('experience_years', None)
+    specialization = data.get('specialization', '')
+    bio = data.get('bio', '')
+
+    if not username or not email or not password:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    if User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first():
+        return jsonify({"error": "User already exists"}), 400
+
+    new_user = User(username=username, email=email, role=UserRole.TREK_STAFF)
+    new_user.set_password(password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    staff_profile = StaffProfile(
+        user_id=new_user.id,
+        full_name=full_name,
+        phone=phone,
+        contact_details=contact_details,
+        experience_years=int(experience_years) if experience_years else None,
+        specialization=specialization,
+        bio=bio,
+        status=ProfileStatus.PENDING
+    )
+    db.session.add(staff_profile)
+    db.session.commit()
+    cache.delete(CACHE_KEY_STAFF)
+    return jsonify({"message": "Staff registered successfully"}), 201
+
+
+
 @admin_bp.route('/approve-staff', methods=['PATCH'])
 @jwt_required()
 def approve_staff():
@@ -306,7 +352,7 @@ def approve_staff():
     
     staff_profile.status = ProfileStatus.APPROVED
     db.session.commit()
-    cache.detele(CACHE_KEY_STAFF)
+    cache.delete(CACHE_KEY_STAFF)
     return jsonify({"message": "Staff profile approved successfully", "staff_profile": {"id": staff_profile.id, "status": staff_profile.status.value}})
 
 @admin_bp.route('/blacklist-staff', methods=['PATCH'])
