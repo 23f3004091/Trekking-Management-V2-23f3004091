@@ -1,10 +1,12 @@
 
 from flask import Blueprint, jsonify, request
 from models import Trek, StaffProfile, Booking, TrekStatus, Trekker, BookingStatus, User
-from extensions import db
+from extensions import db, cache
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 staff_bp = Blueprint('staff', __name__)
+
+CACHE_TIMEOUT = 300
 
 def fmt_dt(dt):
     """Return a plain YYYY-MM-DD date string, or None."""
@@ -12,16 +14,40 @@ def fmt_dt(dt):
         return None
     return dt.strftime('%Y-%m-%d')
 
-@staff_bp.route('/profile', methods=['GET'])
+
+
+@staff_bp.route('/summary', methods=['GET'])
 @jwt_required()
-def get_profile():
+def summary():
     current_user_id = get_jwt_identity()
     staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()
     if not staff_profile:
         return jsonify({"error": "Staff profile not found"}), 404
 
+    total_treks = Trek.query.filter_by(staff_id=staff_profile.user_id).count()
+    total_bookings = Booking.query.join(Trek).filter(Trek.staff_id == staff_profile.user_id).count()
+
+    response = jsonify({
+        "total_treks": total_treks,
+        "total_bookings": total_bookings
+    })
+    return response, 200
+
+
+@staff_bp.route('/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    current_user_id = get_jwt_identity()
+    cache_key = f"staff:profile{current_user_id}"
+    cache_response = cache.get(cache_key)
+    if cache_response:
+        return cache_response
+    staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()
+    if not staff_profile:
+        return jsonify({"error": "Staff profile not found"}), 404
+
     user = User.query.get(int(current_user_id))
-    return jsonify({
+    response = jsonify({
         "username": user.username if user else "",
         "email": user.email if user else "",
         "role": user.role.value if user else "Trek Staff",
@@ -34,13 +60,16 @@ def get_profile():
         "status": staff_profile.status.value if staff_profile.status else "Pending",
         "blacklisted": staff_profile.blacklisted,
         "member_since": fmt_dt(staff_profile.created_at)
-    }), 200
+    })
+    cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
+    return response, 200
 
 
 @staff_bp.route('/profile', methods=['PATCH'])
 @jwt_required()
 def update_profile():
     current_user_id = get_jwt_identity()
+    cache_key = f"staff:profile{current_user_id}"
     staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()
     if not staff_profile:
         return jsonify({"error": "Staff profile not found"}), 404
@@ -60,31 +89,19 @@ def update_profile():
         staff_profile.bio = data['bio']
 
     db.session.commit()
+    cache.delete(cache_key)
     return jsonify({"message": "Profile updated successfully"}), 200
 
-
-
-@staff_bp.route('/summary', methods=['GET'])
-@jwt_required()
-def summary():
-    current_user_id = get_jwt_identity()
-    staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()
-    if not staff_profile:
-        return jsonify({"error": "Staff profile not found"}), 404
-
-    total_treks = Trek.query.filter_by(staff_id=staff_profile.user_id).count()
-    total_bookings = Booking.query.join(Trek).filter(Trek.staff_id == staff_profile.user_id).count()
-
-    return jsonify({
-        "total_treks": total_treks,
-        "total_bookings": total_bookings
-    })
 
 # use db relationships to get treks and bookings for the staff member
 @staff_bp.route('/treks', methods=['GET'])
 @jwt_required()
 def get_treks():
     current_user_id = get_jwt_identity()
+    cache_key = f"staff:treks{current_user_id}"
+    cache_response = cache.get(cache_key)
+    if cache_response:
+        return cache_response
     staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()
 
     if not staff_profile:
@@ -102,8 +119,9 @@ def get_treks():
         "registered_count": len(trek.bookings),
         "status": trek.status.value if trek.status else "Pending"
     } for trek in treks]
-    
-    return jsonify({"treks": trek_list}), 200
+    response = jsonify({"treks": trek_list})
+    cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
+    return response, 200
 
 
 @staff_bp.route('/bookings/<int:trek_id>', methods=['GET'])
@@ -134,8 +152,8 @@ def get_bookings(trek_id):
         "booking_date": fmt_dt(booking.booking_date),
         "status": booking.status.value if booking.status else "Booked"
     } for booking in trek.bookings]
-
-    return jsonify({"bookings": booking_list}), 200
+    response = jsonify({"bookings": booking_list})
+    return response, 200
 
 @staff_bp.route('/user/<int:trek_id>', methods=['GET'])
 @jwt_required()
@@ -158,8 +176,8 @@ def get_users_for_trek(trek_id):
         "booking_status": booking.status.value if booking.status else "Booked",
         "booking_date": fmt_dt(booking.booking_date)
     } for booking in bookings]
-
-    return jsonify({"users": user_data}), 200
+    response = jsonify({"users": user_data})
+    return response, 200
 
 
 # This route handles staff-only trek status transitions: Ongoing and Completed
@@ -167,6 +185,7 @@ def get_users_for_trek(trek_id):
 @jwt_required()
 def update_trek_status(trek_id):
     current_user_id = get_jwt_identity()
+    cache_key = f"staff:treks{current_user_id}"
     staff_profile = StaffProfile.query.filter_by(user_id=current_user_id).first()
 
     if not staff_profile:
@@ -209,6 +228,7 @@ def update_trek_status(trek_id):
         trek.available_slots = int(new_slots)
 
     db.session.commit()
+    cache.delete(cache_key)
 
     return jsonify({
         "message": "Trek updated successfully",
@@ -243,5 +263,4 @@ def update_booking_status(booking_id):
 
     booking.status = BookingStatus(new_status)
     db.session.commit()
-
     return jsonify({"message": "Booking status updated successfully", "booking": {"id": booking.id, "status": booking.status.value}}), 200

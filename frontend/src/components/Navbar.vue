@@ -22,8 +22,8 @@ const handleLogout = () => {
     <div class="container">
       <!-- Brand -->
       <router-link class="navbar-brand" to="/">
-        <span style="font-size: 1.6rem; line-height: 1;">🏔️</span>
-        <span class="brand-text">TrekMate</span>
+        <span style="font-size: 1.6rem; line-height: 1;"></span>
+        <span class="brand-text">Trekking Management</span>
       </router-link>
 
       <!-- Toggler for mobile -->

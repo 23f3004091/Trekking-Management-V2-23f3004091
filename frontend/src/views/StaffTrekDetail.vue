@@ -209,12 +209,12 @@ const formatDate = (d) => {
                     <!-- Mark as Ongoing: only from Approved or Open -->
                     <option value="Ongoing"
                       v-if="currentTrek.status === 'Approved' || currentTrek.status === 'Open'">
-                      🟠 Mark as Ongoing (Started)
+                       Mark as Ongoing (Started)
                     </option>
                     <!-- Mark as Completed: only from Ongoing -->
                     <option value="Completed"
                       v-if="currentTrek.status === 'Ongoing' || currentTrek.status === 'Open'">
-                      ✅ Mark as Completed
+                       Mark as Completed
                     </option>
                   </select>
                   <div v-if="currentTrek.status === 'Pending'" class="form-text text-warning mt-1">

@@ -43,7 +43,7 @@ const executeBooking = async () => {
   try {
     const result = await trekkerStore.bookTrek(trekToBook.value.id)
     if (result.success) {
-      showToast('Trek booked successfully! 🎉', 'success')
+      showToast('Trek booked successfully!', 'success')
       await trekkerStore.fetchTreks()
     } else {
       showToast(result.message || 'Booking failed', 'error')

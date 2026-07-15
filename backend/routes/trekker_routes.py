@@ -1,7 +1,6 @@
-
 from flask import Blueprint, jsonify, request
 from models import Trek, StaffProfile, Booking, TrekStatus, Trekker, BookingStatus, User
-from extensions import db
+from extensions import db, cache
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import os
 from celery.result import AsyncResult
@@ -9,6 +8,8 @@ from flask import send_file
 from tasks import export_booking_history_csv
 
 trekker_bp = Blueprint('trekker', __name__)
+
+CACHE_TIMEOUT = 300
 
 def fmt_dt(dt):
     """Return a plain YYYY-MM-DD date string, or None."""
@@ -20,6 +21,12 @@ def fmt_dt(dt):
 @jwt_required()
 def summary():
     current_user_id = get_jwt_identity()
+    cache_key = f"trekker:summary:{current_user_id}"
+    
+    cache_response = cache.get(cache_key)
+    if cache_response:
+        return cache_response
+
     trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
     if not trekker_profile:
         return jsonify({"error": "Trekker profile not found"}), 404
@@ -27,10 +34,12 @@ def summary():
     total_treks = Trek.query.count()
     total_bookings = Booking.query.filter_by(user_id=current_user_id).count()
 
-    return jsonify({
+    response = jsonify({
         "total_treks": total_treks,
         "total_bookings": total_bookings
     })
+    cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
+    return response, 200
     
 
 @trekker_bp.route('/treks', methods=['GET'])
@@ -41,6 +50,12 @@ def get_treks():
 
     if not trekker_profile:
         return jsonify({"error": "Trekker profile not found"}), 404
+
+    # All trekkers see the same available treks, so a global cache key is efficient here
+    cache_key = "trekker:treks"
+    cache_response = cache.get(cache_key)
+    if cache_response:
+        return cache_response
 
     # Trekkers can see: Pending (view-only), Approved/Open/Ongoing (bookable)
     # Cancelled and Completed are hidden from trekkers
@@ -64,13 +79,21 @@ def get_treks():
             "bookable": trek.status in BOOKABLE_STATUSES,
         })
     
-    return jsonify({"treks": trek_list}), 200
+    response = jsonify({"treks": trek_list})
+    cache.set(cache_key, response, timeout=60)
+    return response, 200
     
 
 @trekker_bp.route('/history', methods=['GET'])
 @jwt_required()
 def get_history():
     current_user_id = get_jwt_identity()
+    cache_key = f"trekker:history:{current_user_id}"
+    
+    cache_response = cache.get(cache_key)
+    if cache_response:
+        return cache_response
+
     trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
 
     if not trekker_profile:
@@ -90,7 +113,9 @@ def get_history():
         "status": b.status.value if b.status else "Booked"
     } for b in history]
 
-    return jsonify({"history": history_list}), 200
+    response = jsonify({"history": history_list})
+    cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
+    return response, 200
 
 @trekker_bp.route('/book-trek/<int:trek_id>', methods=['POST'])
 @jwt_required()
@@ -118,6 +143,10 @@ def book_trek(trek_id):
     
     db.session.add(booking)
     db.session.commit()
+
+    cache.delete(f"trekker:summary:{current_user_id}")
+    cache.delete(f"trekker:history:{current_user_id}")
+    cache.delete("trekker:treks")
 
     return jsonify({"message": "Booking created successfully", "booking": {
         "id": booking.id,
@@ -157,6 +186,9 @@ def update_booking_status(booking_id):
     booking.status = BookingStatus(new_status)
     db.session.commit()
 
+    cache.delete(f"trekker:history:{current_user_id}")
+    cache.delete("trekker:treks")
+
     return jsonify({"message": "Booking status updated successfully", "booking": {"id": booking.id, "status": booking.status.value}}), 200
 
 
@@ -164,12 +196,18 @@ def update_booking_status(booking_id):
 @jwt_required()
 def get_profile():
     current_user_id = get_jwt_identity()
+    cache_key = f"trekker:profile:{current_user_id}"
+    
+    cache_response = cache.get(cache_key)
+    if cache_response:
+        return cache_response
+
     trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
     if not trekker_profile:
         return jsonify({"error": "Trekker profile not found"}), 404
 
     user = User.query.get(int(current_user_id))
-    return jsonify({
+    response = jsonify({
         "username": user.username if user else "",
         "email": user.email if user else "",
         "role": user.role.value if user else "Trekker",
@@ -180,7 +218,10 @@ def get_profile():
         "emergency_contact": trekker_profile.emergency_contact or "",
         "blacklisted": trekker_profile.blacklisted,
         "member_since": fmt_dt(trekker_profile.created_at)
-    }), 200
+    })
+    
+    cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
+    return response, 200
 
 
 @trekker_bp.route('/profile', methods=['PATCH'])
@@ -204,13 +245,15 @@ def update_profile():
         trekker_profile.emergency_contact = data['emergency_contact']
 
     db.session.commit()
+    
+    cache.delete(f"trekker:profile:{current_user_id}")
+    
     return jsonify({"message": "Profile updated successfully"}), 200
 
 
 @trekker_bp.route('/export-history', methods=['POST'])
 @jwt_required()
 def trigger_export():
-    """Trigger an async CSV export job. Returns 202 Accepted immediately."""
     current_user_id = get_jwt_identity()
     trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
 
@@ -228,7 +271,6 @@ def trigger_export():
 @trekker_bp.route('/export-status/<string:task_id>', methods=['GET'])
 @jwt_required()
 def export_status(task_id):
-    """Poll the status of a running CSV export job."""
     result = AsyncResult(task_id)
 
     if result.state == 'SUCCESS':
@@ -242,7 +284,6 @@ def export_status(task_id):
 @trekker_bp.route('/download-csv/<string:task_id>', methods=['GET'])
 @jwt_required(locations=['headers', 'query_string'])
 def download_csv(task_id):
-    """Serve the generated CSV file for download."""
     from flask import current_app
 
     export_dir = os.path.join(current_app.root_path, 'exports')

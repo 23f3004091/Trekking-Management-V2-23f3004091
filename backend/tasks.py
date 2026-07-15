@@ -207,7 +207,7 @@ def export_booking_history_csv(self, user_id):
                 f"Hi {user.username},\n\n"
                 "Your trekking booking history CSV export has been completed.\n"
                 "You can download it from your dashboard.\n\n"
-                "— Trekking Management System"
+                "— Trekking Management"
             )
             mail.send(msg)
 

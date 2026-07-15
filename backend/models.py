@@ -54,7 +54,7 @@ class User(CommonFields, db.Model, UserMixin):
     # Relationships
     bookings = db.relationship('Booking', backref='trekker', lazy=True)
     # Lazy relationship to find managed treks if the user is a Staff member
-    managed_treks = db.relationship('Trek', backref='assigned_staff', lazy=True)
+    managed_treks = db.relationship('Trek', back_populates='staff', lazy=True)
     staff_profile = db.relationship('StaffProfile', backref='user', uselist=False, lazy=True)
     
     def set_password(self, password):
@@ -107,8 +107,8 @@ class Trek(CommonFields):
 
     # Relationships
     bookings = db.relationship('Booking', backref='treks', lazy=True)
-    staff = db.relationship('User', foreign_keys=[staff_id])
-
+    staff = db.relationship('User', foreign_keys=[staff_id], back_populates='managed_treks')
+    
 class Booking(CommonFields):
     __tablename__ = 'bookings'
     

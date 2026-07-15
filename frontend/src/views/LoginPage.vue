@@ -47,7 +47,7 @@ const handleLogin = async () => {
   <div class="auth-page" id="login-page">
     <div class="auth-card animate-slide-up">
       <div class="auth-header">
-        <span class="brand-icon">🏔️</span>
+        <span class="brand-icon">️</span>
         <h2>Welcome Back</h2>
         <p>Sign in to continue your adventure</p>
       </div>

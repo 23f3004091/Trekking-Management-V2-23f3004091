@@ -1,12 +1,20 @@
 
 from flask import Blueprint, jsonify, request
 from models import Trek, StaffProfile, Booking, TrekStatus, Trekker, BookingStatus, User, ProfileStatus, DifficultyLevel
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from extensions import db
+from flask_jwt_extended import jwt_required
+from extensions import db, cache
+from sqlalchemy.orm import joinedload
+
 admin_bp = Blueprint('admin', __name__)
 
+
+CACHE_TIMEOUT = 300
+CACHE_KEY_TREKKERS = "admin:trekkers"
+CACHE_KEY_TREKS = "admin:treks"
+CACHE_KEY_BOOKINGS = "admin:bookings"
+CACHE_KEY_STAFF = "admin:staff"
+
 def fmt_dt(dt):
-    """Return a plain YYYY-MM-DD date string, or None."""
     if not dt:
         return None
     return dt.strftime('%Y-%m-%d')
@@ -18,17 +26,21 @@ def summary():
     total_trekkers = Trekker.query.count()
     total_staff = StaffProfile.query.count()
     total_bookings = Booking.query.count()
-    return jsonify({
+    response = jsonify({
         "total_trekkers": total_trekkers,
         "total_staff": total_staff,
         "total_treks": total_treks,
         "total_bookings": total_bookings
     })
+    return response, 200
 
 @admin_bp.route('/staff', methods=['GET'])
 @jwt_required()
 def get_users():
-    users = StaffProfile.query.all()
+    cached_response = cache.get(CACHE_KEY_STAFF)
+    if cached_response:
+        return cached_response
+    users = StaffProfile.query.options(joinedload(StaffProfile.user)).all()
     user_list = [{
         "id": user.id,
         "user_id": user.user_id,
@@ -42,12 +54,20 @@ def get_users():
         "status": user.status.value,
         "blacklisted": user.blacklisted
     } for user in users]
-    return jsonify({"users": user_list})
+    response = jsonify({"users": user_list})
+    cache.set(CACHE_KEY_STAFF, response, timeout=CACHE_TIMEOUT)
+    return response, 200
 
 @admin_bp.route('/trekkers', methods=['GET'])
 @jwt_required()
 def get_trekkers():
-    trekkers = Trekker.query.all()
+    cached_response = cache.get(CACHE_KEY_TREKKERS)
+    if cached_response:
+        print("-------------------------------------")
+        print("SERVING CACHED RESPONSE...")
+        print("-------------------------------------")
+        return cached_response
+    trekkers = Trekker.query.options(joinedload(Trekker.user)).all()
     trekker_list = [{
         "id": trekker.id,
         "user_id": trekker.user_id,
@@ -59,11 +79,16 @@ def get_trekkers():
         "emergency_contact": trekker.emergency_contact or "",
         "blacklisted": trekker.blacklisted
     } for trekker in trekkers]
-    return jsonify({"trekkers": trekker_list})
+    response = jsonify({"trekkers": trekker_list})
+    cache.set(CACHE_KEY_TREKKERS, response, timeout=CACHE_TIMEOUT)
+    return response, 200
 
 @admin_bp.route('/treks', methods=['GET'])
 @jwt_required()
 def get_treks():
+    cached_response = cache.get(CACHE_KEY_TREKS)
+    if cached_response:
+        return cached_response
     treks = Trek.query.all()
     trek_list = [{
         "id": trek.id,
@@ -74,15 +99,22 @@ def get_treks():
         "start_date": fmt_dt(trek.start_date),
         "end_date": fmt_dt(trek.end_date),
         "staff_id": trek.staff_id,
-        "staff_name": trek.assigned_staff.username if trek.assigned_staff else "Unassigned",
+        "staff_name": trek.staff.username if trek.staff else "Unassigned",
         "status": trek.status.value if trek.status else "Pending"
     } for trek in treks]
-    return jsonify({"treks": trek_list})
+    
+    response = jsonify({"treks": trek_list})
+    cache.set(CACHE_KEY_TREKS, response, timeout=CACHE_TIMEOUT)
+    return response, 200
 
 @admin_bp.route('/bookings', methods=['GET'])
 @jwt_required()
 def get_bookings():
-    bookings = Booking.query.all()
+    cached_response = cache.get(CACHE_KEY_BOOKINGS)
+    if cached_response:
+        return cached_response
+    bookings = Booking.query.options(joinedload(Booking.trekker),joinedload(Booking.treks)).all()
+    
     booking_list = [{
         "id": booking.id,
         "user_id": booking.user_id,
@@ -94,7 +126,11 @@ def get_bookings():
         "booking_date": fmt_dt(booking.booking_date),
         "status": booking.status.value if booking.status else "Booked"
     } for booking in bookings]
-    return jsonify({"bookings": booking_list})
+    
+    response = jsonify({"bookings": booking_list})
+    # print(response)
+    cache.set(CACHE_KEY_BOOKINGS, response, timeout=CACHE_TIMEOUT)
+    return response, 200
 
 @admin_bp.route('/manage-trek/<int:trek_id>', methods=['PATCH'])
 @jwt_required()
@@ -118,6 +154,7 @@ def manage_trek(trek_id):
         return jsonify({"error": "Invalid action. Admin can only 'approve' or 'cancel' a trek."}), 400
     
     db.session.commit()
+    cache.delete(CACHE_KEY_TREKS)
     return jsonify({"message": f"Trek {action}d successfully", "trek": {"id": trek.id, "status": trek.status.value}})
 
 
@@ -151,6 +188,7 @@ def create_trek():
 
     db.session.add(new_trek)
     db.session.commit()
+    cache.delete(CACHE_KEY_TREKS)
     return jsonify({"message": "Trek created successfully", "trek": {
         "id": new_trek.id,
         "trek_name": new_trek.trek_name,
@@ -203,6 +241,7 @@ def update_trek(trek_id):
             trek.staff_id = staff.id
 
     db.session.commit()
+    cache.delete(CACHE_KEY_TREKS)
     return jsonify({"message": "Trek updated successfully", "trek": {
         "id": trek.id,
         "trek_name": trek.trek_name,
@@ -225,6 +264,7 @@ def delete_trek(trek_id):
     
     db.session.delete(trek)
     db.session.commit()
+    cache.delete(CACHE_KEY_TREKS)
     return jsonify({"message": "Trek deleted successfully"})
 
 
@@ -245,6 +285,7 @@ def manage_booking(booking_id):
     else:
         return jsonify({"error": "Invalid action"}), 400
     db.session.commit()
+    cache.delete(CACHE_KEY_BOOKINGS)
     return jsonify({"message": f"Booking {action}d successfully", "booking": {"id": booking.id, "status": booking.status.value}})
 
 @admin_bp.route('/approve-staff', methods=['PATCH'])
@@ -259,6 +300,7 @@ def approve_staff():
     
     staff_profile.status = ProfileStatus.APPROVED
     db.session.commit()
+    cache.detele(CACHE_KEY_STAFF)
     return jsonify({"message": "Staff profile approved successfully", "staff_profile": {"id": staff_profile.id, "status": staff_profile.status.value}})
 
 @admin_bp.route('/blacklist-staff', methods=['PATCH'])
@@ -276,6 +318,7 @@ def reject_staff():
     else:
         staff_profile.blacklisted = True
     db.session.commit()
+    cache.detele(CACHE_KEY_STAFF)
     return jsonify({"message": "Staff profile blacklisted successfully", "staff_profile": {"id": staff_profile.id, "blacklisted": staff_profile.blacklisted}})
 
 @admin_bp.route('/blacklist-trekker', methods=['PATCH'])
@@ -290,4 +333,5 @@ def blacklist_trekker():
 
     trekker.blacklisted = not trekker.blacklisted
     db.session.commit()
+    cache.delete(CACHE_KEY_TREKKERS)
     return jsonify({"message": "Trekker blacklisted successfully", "trekker": {"id": trekker.id, "blacklisted": trekker.blacklisted}})

@@ -16,7 +16,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
             <div class="mb-3">
               <span class="badge rounded-pill px-3 py-2 fw-semibold"
                 style="background: var(--tma-primary-light); color: var(--tma-primary); border: 1px solid var(--tma-primary-alpha20); font-size: 0.8rem; letter-spacing: 0.5px;">
-                <i class="bi bi-stars me-1"></i> Trekking Management System
+                <i class="bi bi-stars me-1"></i> Trekking Management
               </span>
             </div>
             <h1 class="hero-title mb-4">
@@ -24,7 +24,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
               <span class="accent">One Trek at a Time</span>
             </h1>
             <p class="hero-subtitle mb-5">
-              Discover breathtaking trails, book your next adventure, and track your trekking journey with TrekMate — your ultimate outdoor companion.
+              Discover breathtaking trails, book your next adventure, and track your trekking journey with Trekking Management — your ultimate outdoor companion.
             </p>
             <div class="d-flex flex-wrap gap-3 mb-5" v-if="!isAuthenticated">
               <router-link to="/register" class="btn btn-tma btn-lg fw-bold px-4 py-3">
@@ -65,7 +65,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
     <section class="features-section" id="features">
       <div class="container">
         <div class="text-center mb-5">
-          <h2 class="fw-800" style="color: var(--tma-dark);">Why Choose TrekMate?</h2>
+          <h2 class="fw-800" style="color: var(--tma-dark);">Why Choose Trekking Management?</h2>
           <p class="text-muted" style="max-width: 500px; margin: 0.75rem auto 0;">Everything you need for a seamless trekking experience, in one powerful platform.</p>
         </div>
         <div class="row g-4 stagger-children">
@@ -137,8 +137,8 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
     <!-- Footer -->
     <footer class="py-4 text-center text-muted small" style="background: var(--tma-secondary-light); border-top: 1px solid var(--tma-border);">
       <div class="container">
-        <p class="mb-1">🏔️ <strong>TrekMate</strong> — Trekking Management System</p>
-        <p class="mb-0" style="font-size: 0.78rem;">Built with ❤️ for adventure seekers</p>
+        <p class="mb-1"> <strong>Trekking Management</strong> — Trekking Management</p>
+        <p class="mb-0" style="font-size: 0.78rem;">Built with for adventure seekers</p>
       </div>
     </footer>
   </div>

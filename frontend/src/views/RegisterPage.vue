@@ -81,8 +81,8 @@ const handleRegister = async () => {
   <div class="auth-page" id="register-page">
     <div class="auth-card animate-slide-up" style="max-width: 480px;">
       <div class="auth-header">
-        <span class="brand-icon">🏔️</span>
-        <h2>Join TrekMate</h2>
+        <span class="brand-icon">️</span>
+        <h2>Join Trekking Management</h2>
         <p>Create your trekker account today</p>
       </div>
 

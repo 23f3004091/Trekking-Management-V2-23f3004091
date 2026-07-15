@@ -103,7 +103,7 @@ const formatDateTime = (d) => {
           {{ firstLetter }}
         </div>
         <div>
-          <h2 class="mb-1">Welcome back, {{ username }}! 👋</h2>
+          <h2 class="mb-1">Welcome back, {{ username }}!</h2>
           <p class="mb-0">Ready for your next adventure?</p>
         </div>
       </div>
@@ -140,7 +140,7 @@ const formatDateTime = (d) => {
         <div class="col-lg-6">
           <div class="tma-card h-100" style="background: linear-gradient(135deg, var(--tma-primary-light) 0%, #e0e7ff 100%); border: 1px solid var(--tma-primary-alpha20);">
             <div class="card-body p-4 p-xl-5 text-center">
-              <div class="mb-4" style="font-size: 3.5rem; filter: drop-shadow(0 4px 8px var(--tma-primary-alpha20));">🏔️</div>
+              <div class="mb-4" style="font-size: 3.5rem; filter: drop-shadow(0 4px 8px var(--tma-primary-alpha20));">️</div>
               <h4 class="fw-bold mb-2" style="color: var(--tma-dark);">Find Your Next Trail</h4>
               <p class="text-muted mb-4 mx-auto" style="max-width: 300px;">
                 Browse our hand-picked trekking routes — from easy day hikes to challenging expeditions.
