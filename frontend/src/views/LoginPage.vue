@@ -119,7 +119,6 @@ const handleLogin = async () => {
         Don't have an account?
         <router-link to="/register" class="text-primary fw-semibold">Register as Trekker</router-link>
         &nbsp;·&nbsp;
-        <router-link to="/register-staff" class="text-primary fw-semibold">Apply as Staff</router-link>
       </div>
     </div>
   </div>

@@ -42,13 +42,7 @@ const routes = [
     component: RegisterPage,
     meta: { guest: true }
   },
-  {
-    path: '/register-staff',
-    name: 'RegisterStaff',
-    component: RegisterStaffPage,
-    meta: { guest: true }
-  },
-
+  
   // ── Admin ──────────────────────────────────────────────────────
   {
     path: '/admin',
