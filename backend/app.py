@@ -28,11 +28,12 @@ app.config['beat_schedule'] = {
     'daily-morning-reminders': {
         'task': 'tasks.send_daily_morning_reminders',
         # 'schedule': 10.0,
-        'schedule': crontab(minute=0, hour=8), 
+        'schedule': crontab(minute="*"), 
     },
     'monthly-trek-reports': {
         'task': 'tasks.generate_monthly_trek_reports',
-        'schedule': crontab(minute=0, hour=8, day_of_month=1),
+        'schedule': crontab(minute="*"),
+        # 'schedule': crontab(minute=0, hour=8, day_of_month=1),
     }
 }
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'

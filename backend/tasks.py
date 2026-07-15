@@ -4,7 +4,7 @@ from extensions import db, mail
 from flask import render_template, current_app
 from flask_mail import Message
 from datetime import timedelta, datetime
-from models import User, UserRole, Trek, Trekker, BookingStatus
+from models import User, UserRole, Trek, Trekker, BookingStatus, TrekStatus
 import csv
 import os
 
@@ -21,7 +21,7 @@ def send_say_hii(self, user_id):
 
 
 @shared_task(bind=True)
-def user_daily_reminder_mail(self, user_email, user_name, trek_name, start_date, meeting_time, meeting_location, trek_leader_name, trek_leader_phone):
+def user_daily_reminder_mail(self, user_email, user_name, trek_name, start_date, meeting_location, trek_leader_name, trek_leader_phone):
     try:
         msg = Message(
             subject=f"⛰️ Reminder: Your upcoming trek to {trek_name}!",
@@ -31,7 +31,6 @@ def user_daily_reminder_mail(self, user_email, user_name, trek_name, start_date,
         html_body = render_template('user_email.html',userName=user_name,
             trekName=trek_name,
             startDate=start_date,
-            meetingTime=meeting_time,
             meetingLocation=meeting_location,
             trekLeaderName=trek_leader_name,
             trekLeaderPhone=trek_leader_phone)
@@ -48,31 +47,32 @@ def user_daily_reminder_mail(self, user_email, user_name, trek_name, start_date,
 @shared_task(bind=True)
 def send_daily_morning_reminders(self):
     target_date = datetime.utcnow().date() + timedelta(days=3)
-    upcomming_treks = Trek.query.filter(Trek.start_date >= target_date).all()
-    participants = Trekker.query.all()
+    # Only send reminders for active upcoming treks
+    upcoming_treks = Trek.query.filter(
+        Trek.start_date >= target_date,
+        Trek.status.in_([TrekStatus.APPROVED, TrekStatus.OPEN, TrekStatus.ONGOING])
+    ).all()
+    trekker_profiles = Trekker.query.all()
     
-    for trek in upcomming_treks:
-        for participant in participants:
-            print(participant.user)
+    for trek in upcoming_treks:
+        for trekker in trekker_profiles:            
+            staff_name = "TBA"
+            staff_phone = "TBA"
+            if trek.staff:
+                staff_profile = trek.staff.staff_profile
+                staff_name = staff_profile.full_name if staff_profile and staff_profile.full_name else trek.staff.username
+                staff_phone = staff_profile.phone if staff_profile and staff_profile.phone else "TBA"
+
+            print(f"Sending reminder to {trekker.user.email}")
             user_daily_reminder_mail.delay(
-                user_email=participant.user.email,
-                user_name=participant.user.full_name,
+                user_email=trekker.user.email,
+                user_name=trekker.full_name,
                 trek_name=trek.trek_name,
                 start_date=trek.start_date.strftime("%B %d, %Y"),
-                meeting_time=trek.start_date,
                 meeting_location=trek.location,
-                trek_leader_name=trek.staff.full_name,
-                trek_leader_phone=trek.staff.staff_profile.phone
+                trek_leader_name=staff_name,
+                trek_leader_phone=staff_phone
             )
-            
-            # print(f"Sending daily morning reminders for {participant.user.username}")
-            # print(f"Trek Name: {trek.trek_name}")
-            # print(f"Start Date: {trek.start_date}")
-            # print(f"Meeting Time: {trek.start_date}")
-            # print(f"Meeting Location: {trek.location}")
-            # print(f"Trek Leader Name: {trek.staff.username}")
-            # print(f"Trek Leader Phone: {trek.staff.staff_profile.contact_details}")
-            # print(f"Instructions: {instructions_html}")
     
     return "Daily morning reminders have been sent."
 
@@ -120,7 +120,8 @@ def generate_monthly_trek_reports(self):
         
         treks_last_month = Trek.query.filter(
             Trek.start_date >= start_dt,
-            Trek.start_date <= end_dt
+            Trek.start_date <= end_dt,
+            Trek.status != TrekStatus.CANCELLED
         ).all()
         
         total_treks = len(treks_last_month)
