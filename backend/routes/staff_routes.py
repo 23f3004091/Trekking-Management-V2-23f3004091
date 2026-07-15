@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 staff_bp = Blueprint('staff', __name__)
 
-CACHE_TIMEOUT = 300
+CACHE_TIMEOUT = 30
 
 def fmt_dt(dt):
     """Return a plain YYYY-MM-DD date string, or None."""

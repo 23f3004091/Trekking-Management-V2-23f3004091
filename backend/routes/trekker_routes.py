@@ -9,7 +9,7 @@ from tasks import export_booking_history_csv
 
 trekker_bp = Blueprint('trekker', __name__)
 
-CACHE_TIMEOUT = 300
+CACHE_TIMEOUT = 30
 
 def fmt_dt(dt):
     """Return a plain YYYY-MM-DD date string, or None."""

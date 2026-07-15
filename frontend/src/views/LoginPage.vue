@@ -119,7 +119,7 @@ const handleLogin = async () => {
 
       <div class="auth-footer text-muted small">
         Don't have an account?
-        <router-link to="/register" class="text-primary fw-semibold">Register as Trekker</router-link>
+        <router-link to="/register-trekker" class="text-primary fw-semibold">Register as Trekker</router-link>
         &nbsp;·&nbsp;
       </div>
     </div>

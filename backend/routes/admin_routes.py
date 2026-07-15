@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 admin_bp = Blueprint('admin', __name__)
 
 
-CACHE_TIMEOUT = 300
+CACHE_TIMEOUT = 30
 CACHE_KEY_TREKKERS = "admin:trekkers"
 CACHE_KEY_TREKS = "admin:treks"
 CACHE_KEY_BOOKINGS = "admin:bookings"
