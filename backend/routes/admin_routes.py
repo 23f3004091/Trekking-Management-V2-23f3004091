@@ -86,9 +86,9 @@ def get_trekkers():
 @admin_bp.route('/treks', methods=['GET'])
 @jwt_required()
 def get_treks():
-    cached_response = cache.get(CACHE_KEY_TREKS)
-    if cached_response:
-        return cached_response
+    # cached_response = cache.get(CACHE_KEY_TREKS)
+    # if cached_response:
+    #     return cached_response
     treks = Trek.query.all()
     trek_list = [{
         "id": trek.id,
@@ -102,9 +102,10 @@ def get_treks():
         "staff_name": trek.staff.username if trek.staff else "Unassigned",
         "status": trek.status.value if trek.status else "Pending"
     } for trek in treks]
-    
+    oneTrek = Trek.query.get(2)
+    # print([booking.status for booking in oneTrek.bookings])
     response = jsonify({"treks": trek_list})
-    cache.set(CACHE_KEY_TREKS, response, timeout=CACHE_TIMEOUT)
+    # cache.set(CACHE_KEY_TREKS, response, timeout=CACHE_TIMEOUT)
     return response, 200
 
 @admin_bp.route('/bookings', methods=['GET'])
@@ -149,6 +150,11 @@ def manage_trek(trek_id):
     elif action == 'cancel':
         if trek.status == TrekStatus.COMPLETED:
             return jsonify({"error": "Cannot cancel a trek that is already Completed"}), 400
+        else:
+            bookings = trek.bookings
+            for booking in bookings:
+                booking.status = BookingStatus.CANCELLED
+            
         trek.status = TrekStatus.CANCELLED
     else:
         return jsonify({"error": "Invalid action. Admin can only 'approve' or 'cancel' a trek."}), 400

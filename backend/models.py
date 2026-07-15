@@ -96,6 +96,7 @@ class Trek(CommonFields):
     
     trek_name = db.Column(db.String(150), nullable=False)
     location = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=False)
     difficulty = db.Column(db.Enum(DifficultyLevel), default=DifficultyLevel.EASY, nullable=False)  # Easy, Moderate, Hard
     available_slots = db.Column(db.Integer, nullable=False)
     status = db.Column(db.Enum(TrekStatus), default=TrekStatus.PENDING)  # Pending, Approved, Open, Closed, Completed

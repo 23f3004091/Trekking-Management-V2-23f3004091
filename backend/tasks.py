@@ -10,17 +10,6 @@ import os
 
 
 @shared_task(bind=True)
-def send_trek_reminder(self, trek_id):
-    print(f"Sending reminder for trek ID: {trek_id}")
-    return f"Reminder for trek ID {trek_id} has been sent."
-    
-@shared_task(bind=True)
-def send_say_hii(self, user_id):
-    print(f"Sending 'Say Hi' message to user ID: {user_id}")
-    return f"'Say Hi' message sent to user ID {user_id}."
-
-
-@shared_task(bind=True)
 def user_daily_reminder_mail(self, user_email, user_name, trek_name, start_date, meeting_location, trek_leader_name, trek_leader_phone):
     try:
         msg = Message(

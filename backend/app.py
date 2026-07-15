@@ -5,7 +5,6 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 import celery
 from celery_utils import make_celery
 from extensions import mail, cache, db
-from tasks import send_trek_reminder, send_say_hii
 from flask_mail import Message
 from config import Config
 from celery.schedules import crontab
