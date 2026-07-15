@@ -46,6 +46,7 @@ const filteredStaff = computed(() => {
   const q = searchQuery.value.toLowerCase()
   return (adminStore.staffList || []).filter(s =>
     (s.username?.toLowerCase().includes(q)) ||
+    (s.full_name?.toLowerCase().includes(q)) ||
     (s.email?.toLowerCase().includes(q)) ||
     (s.contact_details?.toLowerCase().includes(q)) ||
     (s.user_id?.toString().includes(q)) ||
@@ -132,6 +133,7 @@ const toggleBlacklist = async (id) => {
               <tr>
                 <th>Profile ID</th>
                 <th>Username</th>
+                <th>Full name</th>
                 <th>Email</th>
                 <th>Contact Details</th>
                 <th>Status</th>
@@ -143,6 +145,7 @@ const toggleBlacklist = async (id) => {
               <tr v-for="staff in filteredStaff" :key="staff.id">
                 <td class="text-muted fw-medium">#{{ staff.id }}</td>
                 <td class="fw-semibold">{{ staff.username || `User #${staff.user_id}` }}</td>
+                <td class="fw-semibold">{{ staff.full_name }}</td>
                 <td class="text-muted">{{ staff.email || '—' }}</td>
                 <td>{{ staff.contact_details || '—' }}</td>
                 <td>
