@@ -9,7 +9,7 @@ from tasks import export_booking_history_csv
 
 trekker_bp = Blueprint('trekker', __name__)
 
-CACHE_TIMEOUT = 30
+CACHE_TIMEOUT = 0
 
 def fmt_dt(dt):
     """Return a plain YYYY-MM-DD date string, or None."""
@@ -21,24 +21,25 @@ def fmt_dt(dt):
 @jwt_required()
 def summary():
     current_user_id = get_jwt_identity()
-    cache_key = f"trekker:summary:{current_user_id}"
+    # cache_key = f"trekker:summary:{current_user_id}"
     
-    cache_response = cache.get(cache_key)
-    if cache_response:
-        return cache_response
+    # cache_response = cache.get(cache_key)
+    # if cache_response:
+    #     return cache_response
 
     trekker_profile = Trekker.query.filter_by(user_id=current_user_id).first()
     if not trekker_profile:
         return jsonify({"error": "Trekker profile not found"}), 404
 
     total_treks = Trek.query.count()
+    print(trekker_profile.user.bookings)
     total_bookings = Booking.query.filter_by(user_id=current_user_id).count()
 
     response = jsonify({
         "total_treks": total_treks,
         "total_bookings": total_bookings
     })
-    cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
+    # cache.set(cache_key, response, timeout=CACHE_TIMEOUT)
     return response, 200
     
 
